@@ -1,6 +1,9 @@
+import AgentFactory from "./agentFactory.js";
+
 class TaskManager {
-  constructor() {
+  constructor(sqlInstance) {
     this.tasks = new Map();
+    this.agentFactory = new AgentFactory(sqlInstance);
   }
 
   async routeTask(task) {
@@ -8,12 +11,18 @@ class TaskManager {
       task.status = "ROUTING";
       task.startedAt = new Date();
 
-      const agent = this.determineAgent(task.query.parsedQuery.reportType);
-      task.assignedAgent = agent;
+      // Determine appropriate agent based on report type
+      const agentType = this.determineAgent(task.query.parsedQuery.reportType);
+      const agent = this.agentFactory.createAgent(agentType);
+      task.assignedAgent = agentType;
 
+      // Store task
       this.tasks.set(task.id, task);
 
-      task.status = "ROUTED";
+      // Process the task with the agent
+      const result = await agent.processTask(task);
+      task.result = result;
+      task.status = "COMPLETED";
 
       return task;
     } catch (error) {
@@ -24,11 +33,11 @@ class TaskManager {
 
   determineAgent(reportType) {
     const agentMap = {
-      GENERAL: "GeneralAgent",
-      REPORT: "ReportingAgent",
-      // FINANCIAL: "FinancialReportingAgent",
-      // OPERATIONAL: "OperationalReportingAgent",
-      // TEAM: "TeamReportingAgent",
+      GENERAL_REPORT: "GENERAL",
+      FINANCIAL_REPORT: "FINANCIAL",
+      OPERATIONAL_REPORT: "OPERATIONAL",
+      TEAM_REPORT: "TEAM",
+      CUSTOMER_INTERACTION: "CustomerInteractionAgent",
     };
 
     return agentMap[reportType] || "GeneralAgent";

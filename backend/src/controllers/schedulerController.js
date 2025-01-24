@@ -1,3 +1,5 @@
+import Query from "../models/query";
+
 class SchedulerController {
   constructor(scheduler) {
     this.scheduler = scheduler;

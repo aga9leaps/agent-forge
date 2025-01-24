@@ -11,16 +11,11 @@ class QueryInterpreter {
   async interpretQuery(query) {
     try {
       const response = await this.openai.chat.completions.create({
-        model: config.openai.model,
+        model: config.openai.gpt4MiniModel,
         messages: [
           {
             role: "system",
-            content: `
-              You are a query interpreter that analyzes reporting requests. For each query:
-                1. Identify the report type: GENERAL or REPORT
-                2. Extract key parameters and filters
-                3. Return a JSON with: reportType, parameters, filters
-            `,
+            content: config.systemPrompt.queryInterpreter,
           },
           {
             role: "user",
@@ -35,6 +30,8 @@ class QueryInterpreter {
         parameters: interpretation.parameters,
         filters: interpretation.filters,
       };
+
+      console.log("🚀 ~ QueryInterpreter ~ interpretQuery ~ query:", query);
 
       return query;
     } catch (error) {

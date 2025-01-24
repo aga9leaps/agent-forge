@@ -16,7 +16,7 @@ const sqlInstance = await SQLDatabase.createPool();
 
 // Initialize services
 const queryInterpreter = new QueryInterpreter();
-const taskManager = new TaskManager();
+const taskManager = new TaskManager(sqlInstance);
 const orchestrator = new Orchestrator(queryInterpreter, taskManager);
 const scheduler = new Scheduler(orchestrator);
 
