@@ -1,10 +1,4 @@
 import express from "express";
-import QueryInterpreter from "../services/queryInterpreter.js";
-import TaskManager from "../services/taskManager.js";
-import Orchestrator from "../services/orchestrator.js";
-import Scheduler from "../services/scheduler.js";
-import QueryController from "../controllers/queryController.js";
-import SchedulerController from "../controllers/schedulerController.js";
 import AuthController from "../controllers/authController.js";
 import SQLDatabase from "../database/sql.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
