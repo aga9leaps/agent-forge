@@ -70,6 +70,7 @@ class STTService {
         config: {
           encoding: "LINEAR16",
           // sampleRateHertz: 44100,
+          languageCode: "en-US",
           audioChannelCount: 1,
           enableSeparateRecognitionPerChannel: false,
         },
