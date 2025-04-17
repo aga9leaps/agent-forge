@@ -61,16 +61,15 @@ class STTService {
     }
   }
 
-  async _recognizeAudio(filePath) {
+  async _recognizeAudio(audioBuffer) {
     try {
-      const audioBytes = fs.readFileSync(filePath).toString("base64");
+      // const audioBytes = fs.readFileSync(filePath).toString("base64");
 
       const request = {
-        audio: { content: audioBytes },
+        audio: { content: audioBuffer },
         config: {
           encoding: "LINEAR16",
-          sampleRateHertz: 44100,
-          languageCode: "en-US",
+          // sampleRateHertz: 44100,
           audioChannelCount: 1,
           enableSeparateRecognitionPerChannel: false,
         },
