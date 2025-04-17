@@ -8,7 +8,13 @@ class AgentService {
     this.tools = [];
   }
 
-  async processRequest(systemPrompt, conversationHistory, consumer) {
+  async processRequest(
+    systemPrompt,
+    conversationHistory,
+    consumer,
+    response_format = null,
+    responseStructure = null
+  ) {
     if (!this.clientConfig) {
       return "Client config not found";
     }
@@ -36,12 +42,14 @@ class AgentService {
       ...conversationHistory,
     ];
 
-    const response = await openaiService.chatCompletions(
-      this.clientConfig?.llm?.responseGenerationModel,
-      messages,
-      this.tools,
-      this.clientConfig?.llm.responseGenerationTemperature
-    );
+    const response = await openaiService.chatCompletions({
+      model: this.clientConfig?.llm?.responseGenerationModel,
+      messages: messages,
+      tools: this.tools,
+      temperature: this.clientConfig?.llm?.responseGenerationTemperature ?? 0.7,
+      response_format: response_format,
+      responseStructure: responseStructure,
+    });
     const generatedText = response.choices[0]?.message?.content || "";
 
     // Perform moderation check before returning response
