@@ -126,12 +126,14 @@ class AgentService {
     }
 
     console.log("Generating new response with updated conversation history...");
-    const newResponse = await openaiService.chatCompletions(
-      this.clientConfig?.llm?.responseGenerationModel,
-      conversationHistory,
-      this.tools || [],
-      this.clientConfig?.llm.responseGenerationTemperature || 0.7
-    );
+    const newResponse = await openaiService.chatCompletions({
+      model: this.clientConfig?.llm?.responseGenerationModel,
+      messages: conversationHistory,
+      tools: this.tools || [],
+      temperature: this.clientConfig?.llm?.responseGenerationTemperature ?? 0.7,
+      response_format: response_format,
+      responseStructure: responseStructure,
+    });
 
     // If the new response includes additional tool calls, handle them recursively.
     if (newResponse.choices[0]?.message?.tool_calls) {
