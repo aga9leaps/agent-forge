@@ -8,15 +8,15 @@ class OpenAIService {
     this.openaiClient = new OpenAI({ apiKey });
   }
 
-  async chatCompletions(
+  async chatCompletions({
     model,
     messages,
     tools,
     temperature = 0.7,
     tool_choice = "auto",
     response_format = null,
-    responseStructure = null
-  ) {
+    responseStructure = null,
+  }) {
     try {
       const requestOptions = {
         model,
