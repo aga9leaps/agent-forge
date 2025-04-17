@@ -1,14 +1,15 @@
 import mysql from "mysql2/promise";
-import config from "../config/config.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 class SQLDatabase {
-  static async createPool() {
+  static async createPool(DB_NAME) {
     if (!this.pool) {
       this.pool = mysql.createPool({
-        host: config.sql.DB_HOST,
-        user: config.sql.DB_USER,
-        password: config.sql.DB_PASSWORD,
-        database: config.sql.DB_NAME,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: DB_NAME,
         waitForConnections: true,
         connectionLimit: 10,
       });
@@ -49,6 +50,13 @@ class SQLDatabase {
       console.error("Database health check failed:", error);
       return false;
     }
+  }
+
+  static async getSqlConnection() {
+    if (!this.pool) {
+      this.pool = await this.createPool();
+    }
+    return this.pool;
   }
 }
 

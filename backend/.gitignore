@@ -1,41 +1,32 @@
 # Node.js dependencies
+
 /node_modules/
 
-# Build output
-/dist/
-/build/
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
 # Environment variables
+
 .env
 
-# Operating system files
+# Logs
+.DS_Store
+\*.log
+
+# OS-specific files
+
 .DS_Store
 Thumbs.db
 
-# IDE/Editor directories and files
+# npm package-lock files
+
+package-lock.json
+
+# VSCode settings
+
 .vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 
-# Coverage reports
-/coverage/
+# build files
 
-# Optional npm cache directory
-.npm/
+dist/
 
-# Optional yarn cache directory
-.yarn/
+# Ignore config files or directories that are meant to be private
 
-# dotenv environment variable files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+/configs

@@ -1,9 +1,10 @@
 import { MongoClient } from "mongodb";
-import config from "../config/config.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 class MongoDatabase {
   static async connect() {
-    const uri = config.mongo.MONGO_URI;
+    const uri = process.env.MONGO_URI;
     if (!this.client) {
       this.client = new MongoClient(uri, {
         useNewUrlParser: true,
@@ -21,7 +22,7 @@ class MongoDatabase {
 
   static async getDatabase() {
     if (!this.dbInstance) {
-      this.dbInstance = await connect();
+      this.dbInstance = await this.connect();
     }
     return this.dbInstance;
   }
