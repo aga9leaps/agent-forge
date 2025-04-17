@@ -131,8 +131,6 @@ class AgentService {
       messages: conversationHistory,
       tools: this.tools || [],
       temperature: this.clientConfig?.llm?.responseGenerationTemperature ?? 0.7,
-      response_format: response_format,
-      responseStructure: responseStructure,
     });
 
     // If the new response includes additional tool calls, handle them recursively.
