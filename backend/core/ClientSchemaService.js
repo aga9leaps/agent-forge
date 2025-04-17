@@ -25,7 +25,7 @@ class ClientSchemaService {
 
     try {
       const config = JSON.parse(
-        await readFile(`./config/clients/${clientId}.json`)
+        await readFile(`./configs/clients/${clientId}.json`)
       );
       const validated = ClientSchema.parse(config);
 
