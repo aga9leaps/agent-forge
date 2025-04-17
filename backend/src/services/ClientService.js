@@ -280,9 +280,9 @@ class ClientService {
         - **Location:** ${consumer.location || "Not provided"}
 
       `;
-      const response = await openaiService.chatCompletions(
-        "gpt-4o",
-        [
+      const response = await openaiService.chatCompletions({
+        model: "gpt-4o",
+        messages: [
           {
             role: "system",
             content:
@@ -290,12 +290,11 @@ class ClientService {
           },
           { role: "user", content: prompt },
         ],
-        [],
-        0.7,
-        "auto",
-        "json",
-        this.responseStructure
-      );
+        tools: [],
+        temperature: 0.7,
+        response_format: "json",
+        responseStructure: this.responseStructure,
+      });
 
       const content = JSON.parse(response.choices[0]?.message?.content);
 
