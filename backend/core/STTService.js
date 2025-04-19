@@ -80,11 +80,13 @@ class STTService {
     try {
         const client = await vertexAIService.getSpeechClient();
         const recognizerName = `projects/${authConfigs.project_id}/locations/${this.location}/recognizers/am-fixed-multilingual-recognizer`;
+        const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN']; 
 
         const request = {
             recognizer: recognizerName,
             config: {
                 autoDecodingConfig: {},
+                languageCodeSettings: languageCodes.map(code => ({ languageCode: code })),
                 ...recognitionConfig,
             },
             audio: { content: audioBuffer },
