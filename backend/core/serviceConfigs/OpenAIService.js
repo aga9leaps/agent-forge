@@ -82,6 +82,36 @@ class OpenAIService {
       return false;
     }
   }
+
+  async openaiTranscription(audioBuffer) {
+    try {
+      const transcription = await this.openaiClient.audio.transcriptions.create(
+        {
+          file: audioBuffer,
+          model: "whisper-1",
+        }
+      );
+
+      return transcription?.text;
+    } catch (error) {
+      console.error("Error in generating embedding:", error);
+      return false;
+    }
+  }
+
+  async openaiTranslation(audioBuffer) {
+    try {
+      const translation = await this.openaiClient.audio.translations.create({
+        file: audioBuffer,
+        model: "whisper-1",
+      });
+
+      return translation?.text;
+    } catch (error) {
+      console.error("Error in generating embedding:", error);
+      return false;
+    }
+  }
 }
 
 export const openaiService = new OpenAIService(process.env.OPENAI_API_KEY);

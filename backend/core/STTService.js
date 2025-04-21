@@ -1,99 +1,116 @@
-import fs from "fs";
-import path from "path";
-import { exec } from "child_process";
-import util from "util";
-import { fileURLToPath } from "url";
+import authConfigs from "../configs/setUp.json" with { type: "json" };
 import { vertexAIService } from "./serviceConfigs/VertexAIService.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const execPromise = util.promisify(exec);
 
 class STTService {
   constructor() {
-    this.tempDir = path.join(__dirname, "../temp");
+    this.location = "us-central1";
   }
 
-  async transcribeAudio(mediaBase64) {
-    let inputPath = null;
-    let outputPath = null;
-
+  // Recognizer creation for STT v2
+  async createRecognizer(model) {
     try {
-      // Ensure temp directory exists
-      if (!fs.existsSync(this.tempDir)) {
-        fs.mkdirSync(this.tempDir, { recursive: true });
-      }
-
-      // Create temp file paths
-      const timestamp = Date.now();
-      inputPath = path.join(this.tempDir, `audio-${timestamp}.ogg`);
-      outputPath = path.join(this.tempDir, `audio-${timestamp}_mono.wav`);
-
-      // Save original audio
-      fs.writeFileSync(inputPath, Buffer.from(mediaBase64, "base64"));
-
-      // Convert audio format
-      await this._convertAudio(inputPath, outputPath);
-
-      // Get transcription
-      const transcription = await this._recognizeAudio(outputPath);
-
-      // Cleanup
-      this._cleanupFiles([inputPath, outputPath]);
-
-      return transcription;
-    } catch (error) {
-      // Cleanup if paths were created
-      this._cleanupFiles([inputPath, outputPath].filter(Boolean));
-      throw error;
-    }
-  }
-
-  async _convertAudio(inputPath, outputPath) {
-    try {
-      await execPromise(
-        `ffmpeg -i "${inputPath}" -ac 1 -ar 44100 "${outputPath}"`
-      );
-      return outputPath;
-    } catch (error) {
-      throw new Error(`Audio conversion failed: ${error.message}`);
-    }
-  }
-
-  async _recognizeAudio(audioBuffer) {
-    try {
-      // const audioBytes = fs.readFileSync(filePath).toString("base64");
+      const client = await vertexAIService.getSpeechClient();
+      const recognizerId = 'am-fixed-multilingual-recognizer';
+      const parent = `projects/${authConfigs.project_id}/locations/${this.location}`;
+      const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN'];
 
       const request = {
-        audio: { content: audioBuffer },
-        config: {
-          encoding: "LINEAR16",
-          // sampleRateHertz: 44100,
-          languageCode: "en-US",
-          audioChannelCount: 1,
-          enableSeparateRecognitionPerChannel: false,
-        },
+          parent: parent,
+          recognizerId: recognizerId,
+          recognizer: {
+              defaultRecognitionConfig: {
+                  languageCodes: languageCodes, 
+                  model: model
+              },
+          },
       };
 
-      const speechClient = await vertexAIService.getSpeechClient();
-      const [response] = await speechClient.recognize(request);
+      try {
+          const [operation] = await client.createRecognizer(request);
+          await operation.promise(); 
+          console.log('Fixed multilingual recognizer created:', recognizerId);
+          return recognizerId;
+      } catch (error) {
+          if (error.message.includes('ALREADY_EXISTS')) {
+              console.log('Fixed multilingual recognizer already exists:', recognizerId);
+              return recognizerId;
+          } else {
+              throw error;
+          }
+      }
 
+  } catch (error) {
+      console.error('Error creating fixed multilingual recognizer:', error);
+      throw new Error(`Failed to create recognizer: ${error.message}`);
+  }
+  }
+
+  async transcribeAudioV1(audioBuffer, configOverrides = {}) {
+    try {
+      const client = await vertexAIService.getSpeechClient();
+      const config = {
+        encoding: "LINEAR16",
+        languageCode: "en-US",
+        audioChannelCount: 1,
+        enableSeparateRecognitionPerChannel: false,
+        ...configOverrides,
+      };
+
+      const audio = { content: audioBuffer };
+      const request = { audio, config };
+
+      const [response] = await client.recognize(request);
+      if (!response || !response.results) {
+        throw new Error(
+          "No transcription results received from Speech-to-Text API."
+        );
+      }
       return response.results
         .map((result) => result.alternatives[0].transcript)
         .join("\n");
     } catch (error) {
-      throw new Error(`Speech recognition failed: ${error.message}`);
+      console.error("Error in transcribeAudioV1:", error);
+      throw new Error(
+        `Speech-to-Text V1 transcription failed: ${error.message}`
+      );
     }
   }
 
-  _cleanupFiles(files) {
-    files.forEach((file) => {
-      if (fs.existsSync(file)) {
-        fs.unlinkSync(file);
-      }
-    });
-  }
+  async transcribeAudioV2(audioBuffer, recognitionConfig = {}) {
+    try {
+        const client = await vertexAIService.getSpeechClient();
+        const recognizerName = `projects/${authConfigs.project_id}/locations/${this.location}/recognizers/am-fixed-multilingual-recognizer`;
+        const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN']; 
+
+        const request = {
+            recognizer: recognizerName,
+            config: {
+                autoDecodingConfig: {},
+                languageCodeSettings: languageCodes.map(code => ({ languageCode: code })),
+                ...recognitionConfig,
+            },
+            audio: { content: audioBuffer },
+        };
+
+        const [response] = await client.recognize(request);
+        if (!response || !response.results) {
+            throw new Error('No transcription results received from Speech-to-Text V2 API.');
+        }
+
+        let fullTranscript = "";
+        for (const result of response.results) {
+            for (const alternative of result.alternatives) {
+                fullTranscript += alternative.transcript + " ";
+            }
+            fullTranscript += "\n";
+        }
+        return fullTranscript.trim();
+
+    } catch (error) {
+        console.error('Error in transcribeAudioV2:', error);
+        throw new Error(`Speech-to-Text V2 transcription failed: ${error.message}`);
+    }
+}
 }
 
 export const sttService = new STTService();
