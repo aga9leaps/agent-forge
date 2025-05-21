@@ -4,16 +4,17 @@ import BaseSqlRepository from "../../core/baseRepository/baseSqlRepository.js";
 export default class RemiderRepository extends BaseSqlRepository {
   async getRawData(typeOfData) {
     try {
-      let tableName;
-      if (typeOfData === "order") tableName = "SalesDetails";
-      else if (typeOfData === "payment") tableName = "PaymentDetails";
+      let tableName = "vouchers";
+      let voucherType;
+      if (typeOfData === "order") voucherType = "GST Sales";
+      else if (typeOfData === "payment") voucherType = "Receipt";
       else
         return {
           success: false,
           message: "Enter vaild data type",
         };
-      const query = `SELECT Particulars, Date_Of_Action FROM ${tableName} ORDER BY Particulars, Date_Of_Action ASC`;
-      const data = await this.executeQuery(query, []);
+      const query = `SELECT Particulars, Date_Of_Action FROM ${tableName} WHERE Voucher_Type = ? ORDER BY Particulars, Date_Of_Action ASC`;
+      const data = await this.executeQuery(query, [voucherType]);
       return {
         success: true,
         data,

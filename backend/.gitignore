@@ -30,3 +30,6 @@ dist/
 # Ignore config files or directories that are meant to be private
 
 /configs
+
+# Ignore Tally daemon service files(window service logs)
+Tally/daemon/

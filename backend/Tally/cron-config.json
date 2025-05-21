@@ -1,0 +1,22 @@
+{
+    "scripts": [
+      {
+        "name": "MasterReport",
+        "s3Key": "Tally/tally-xml-scripts/MasterReport.js",
+        "schedule": "*/30 * * * * *",
+        "csvKey": "Tally/tally-csv-reports/master_report.csv"
+      },
+      {
+        "name": "BillsPayableReport",
+        "s3Key": "Tally/tally-xml-scripts/BillsPayableReport.js",
+        "schedule": "*/1 * * * *",
+        "csvKey": "Tally/tally-csv-reports/bills_payable_report.csv"
+      },
+      {
+        "name": "VoucherRegisterReport",
+        "s3Key": "Tally/tally-xml-scripts/VoucherRegisterReport.js",
+        "schedule": "*/2 * * * *",
+        "csvKey": "Tally/tally-csv-reports/voucher_register_report.csv"
+      }
+    ]
+  }
