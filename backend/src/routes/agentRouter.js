@@ -22,6 +22,9 @@ const createAgentRouter = (clientConfig) => {
   router.post("/process-reminder", async (req, res) => {
     await customerInteractionController.processReminders(req, res);
   });
+   router.post("/send-reminder", async (req, res) => {
+    await customerInteractionController.sendReminders(req, res);
+  });
 
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {

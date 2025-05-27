@@ -338,7 +338,7 @@ export default class ReminderService {
   async sendReminders(typeOfReminder) {
     // TODO: For testing
     // Check for reminders that need to be sent today
-    const today = new Date("2024-09-01T00:00:00");
+    const today = new Date("2025-05-27T00:00:00");
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -361,12 +361,12 @@ export default class ReminderService {
           success: analysedData.success,
           message: analysedData.message,
         };
-      }
+      }      
 
       const lastActionKey =
         typeOfReminder === "order" ? "last_order_date" : "last_payment_date";
 
-      for (const dealer of analysedData.data) {
+      for (const dealer of analysedData.data) {        
         // Get customer contact details
         const customerDetails =
           await this.customerInteractionRepository.getCustomerDetailsFromParticulars(

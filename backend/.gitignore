@@ -33,3 +33,6 @@ dist/
 
 # Ignore Tally daemon service files(window service logs)
 Tally/daemon/
+
+# Ignore Tally daemon service files(window service logs)
+Tally/TallyReports/master_ledger_response.json
