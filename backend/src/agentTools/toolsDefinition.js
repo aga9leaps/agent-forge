@@ -17,21 +17,3 @@ export const VECTOR_SEARCH_TOOL = {
     },
   },
 };
-
-export const SQL_SEARCH_TOOL = {
-  type: "function",
-  function: {
-    name: "sqlSearch",
-    description:
-      "This data base contains existing customer information, like name, address, contact details, location etc.",
-    parameters: {
-      type: "object",
-      properties: {
-        location: {
-          type: "string",
-          description: "The location mentioned by the user",
-        },
-      },
-    },
-  },
-};

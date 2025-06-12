@@ -5,15 +5,16 @@ import { MODELS } from "../utils/constants.js";
 import dotenv from "dotenv";
 dotenv.config({ path: "./configs/.env" });
 
-export async function vectorSearchTool(query) {
+export async function vectorSearchTool(params) {
   try {
+    const { query } = params;
     console.log("Performing vector search for the query:", query);
 
     const vectorClient = await MilvusDatabase.getMilvusClient();
 
     // Use embedding service
     const embedding = await openaiService.embedding(
-      query.query,
+      query,
       MODELS.EMBEDDING_MODEL
     );
 

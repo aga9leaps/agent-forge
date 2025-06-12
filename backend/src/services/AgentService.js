@@ -84,28 +84,47 @@ class AgentService {
     for (const toolCall of toolCalls) {
       const toolName = toolCall.function.name;
       try {
-        const query = JSON.parse(toolCall.function.arguments);
+        // Parse and validate tool arguments
+        let params;
+        try {
+          params = JSON.parse(toolCall.function.arguments);
+        } catch (parseError) {
+          console.error(
+            `Failed to parse tool arguments for ${toolName}:`,
+            parseError
+          );
+          conversationHistory.push({
+            role: "tool",
+            content: "Error: Invalid tool arguments format",
+            tool_call_id: toolCall.id,
+          });
+          continue;
+        }
 
-        console.log(
-          `Processing tool call: ${toolName} with query`,
-          query?.query
-        );
+        console.log(`Processing tool call: ${toolName} with params:`, params);
 
-        // Execute the tool with the parsed arguments.
-        const result = await toolSelector(toolName, query?.query);
+        // Execute the tool with the parsed arguments
+        const result = await toolSelector(toolName, params);
         console.log("🚀 ~ AgentService ~ result:", result);
+
+        // Ensure result is serializable for conversation history
+        const serializedResult =
+          typeof result === "string" ? result : JSON.stringify(result);
+
         conversationHistory.push({
           role: "tool",
-          content: result,
+          content: serializedResult,
           tool_call_id: toolCall.id,
         });
       } catch (error) {
-        console.error("Error processing tool call:", error);
-        return {
-          generated_text: "An error occurred while processing the request.",
-          context: null,
-          tool_used: null,
-        };
+        console.error(`Error processing tool call ${toolName}:`, error);
+
+        // Add error information to conversation history instead of returning early
+        conversationHistory.push({
+          role: "tool",
+          content: `Error executing ${toolName}: ${error.message}`,
+          tool_call_id: toolCall.id,
+        });
       }
     }
 
