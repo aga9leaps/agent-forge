@@ -1,10 +1,11 @@
 import { fetchProfitAndLossAndUploadPDF } from "../../Tally/TallyReports/ProfitLossReport.js";
 
-function init() {
-  async function execute({ fromDate, toDate }) {
+export async function profitLossReportTool({ fromDate, toDate }) {
+  try {
     const s3Url = await fetchProfitAndLossAndUploadPDF(fromDate, toDate);
     return { s3Url };
+  } catch (error) {
+    console.error("Error generating Profit and Loss report:", error);
+    throw error;
   }
-  return { execute };
 }
-export { init };

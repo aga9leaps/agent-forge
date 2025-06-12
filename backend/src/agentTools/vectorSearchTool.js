@@ -1,9 +1,10 @@
 import { formatContextArray } from "../utils/dataHandler.js";
 import MilvusDatabase from "../databases/milvus.js";
 import { openaiService } from "../serviceConfigs/OpenAIService.js";
+import { MODELS } from "../utils/constants.js";
 
-function init() {
-  async function execute({ query, toolParams }) {
+export async function vectorSearchTool(query) {
+  try {
     console.log("Performing vector search for the query:", query.query);
 
     const vectorClient = await MilvusDatabase.getMilvusClient();
@@ -11,22 +12,25 @@ function init() {
     // Use embedding service
     const embedding = await openaiService.embedding(
       query.query,
-      toolParams.embeddingModel
+      MODELS.EMBEDDING_MODEL
     );
 
     // Call the vector search function, now using the injected client
     const results = await searchVectors({
       client: vectorClient,
       embedding,
-      topK: toolParams.topK || 5,
-      collection: toolParams.collectionName,
-      outputFields: toolParams.outputFields || [],
-      minScore: toolParams.minScore || 0.4,
+      topK: 5,
+      collection: process.env.MILVUS_COLLECTION_NAME,
+      outputFields: [
+        "id",
+        "content_type",
+        "original_data",
+        "text_for_embedding",
+      ],
+      minScore: 0.4,
     });
 
-    const filteredResults = results.filter(
-      (result) => result.score >= (toolParams.minScore || 0.4)
-    );
+    const filteredResults = results.filter((result) => result.score >= 0.4);
     const retrievedContext = filteredResults.map((result) => ({
       data: result.data,
     }));
@@ -34,9 +38,10 @@ function init() {
 
     console.log("Vector search results count:", formattedContext.length);
     return formattedContext;
+  } catch (error) {
+    console.error("Error in vectorSearchTool:", error);
+    throw error;
   }
-
-  return { execute };
 }
 
 async function searchVectors({
@@ -73,5 +78,3 @@ async function searchVectors({
     throw error;
   }
 }
-
-export { init };

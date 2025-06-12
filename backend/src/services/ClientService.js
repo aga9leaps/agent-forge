@@ -63,8 +63,6 @@ class ClientService {
         { role: "user", content: query },
       ];
 
-      // TODO:
-      AgentService.clientConfig = this.clientConfig;
       const response = await AgentService.processRequest(
         systemPrompt,
         conversationHistory,

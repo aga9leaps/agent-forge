@@ -3,6 +3,8 @@ import createAgentRouter from "./src/routes/agentRouter.js";
 import cors from "cors";
 import initializeDatabases from "./src/utils/initializeDatabases";
 const app = express();
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 app.use(cors());
 const PORT = process.env.PORT || 3000;
 
