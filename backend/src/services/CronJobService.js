@@ -1,6 +1,8 @@
 import { CronJob } from "cron";
 import EventEmitter from "events";
 import TasksRepository from "../repository/tasksRepository.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 export default class CronJobService extends EventEmitter {
   constructor() {

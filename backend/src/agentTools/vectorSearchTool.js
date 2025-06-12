@@ -2,10 +2,12 @@ import { formatContextArray } from "../utils/dataHandler.js";
 import MilvusDatabase from "../databases/milvus.js";
 import { openaiService } from "../serviceConfigs/OpenAIService.js";
 import { MODELS } from "../utils/constants.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 export async function vectorSearchTool(query) {
   try {
-    console.log("Performing vector search for the query:", query.query);
+    console.log("Performing vector search for the query:", query);
 
     const vectorClient = await MilvusDatabase.getMilvusClient();
 

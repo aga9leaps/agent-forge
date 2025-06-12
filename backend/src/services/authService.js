@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import UserRepository from "../repository/userRepository.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 class AuthService {
   constructor() {

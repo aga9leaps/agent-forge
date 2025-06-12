@@ -1,5 +1,7 @@
 import WhatsAppService from "./WhatsAppService.js";
 import CustomerInteractionRepository from "../repository/customerInteractionRepository.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 export default class CustomerInteractionService {
   constructor() {

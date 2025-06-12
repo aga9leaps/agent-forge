@@ -6,6 +6,8 @@ import {
   categorizeDealer,
 } from "../utils/statisticsHelper.js";
 import WhatsAppService from "./WhatsAppService.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 export default class ReminderService {
   constructor() {

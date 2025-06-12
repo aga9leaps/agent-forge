@@ -3,15 +3,15 @@ import { MODELS } from "../utils/constants.js";
 import { openaiService } from "../serviceConfigs/OpenAIService.js";
 
 class AgentService {
-  async processRequest(
+  async processRequest({
     systemPrompt,
     conversationHistory,
     consumer,
     response_format = null,
     responseStructure = null,
     tools = [],
-    temperature = 0.7
-  ) {
+    temperature = 0.7,
+  }) {
     // Messages array contains the context for the model and converstaion history.
     const messages = [
       {
@@ -86,10 +86,13 @@ class AgentService {
       try {
         const query = JSON.parse(toolCall.function.arguments);
 
-        console.log(`Processing tool call: ${toolName} with query`, query);
+        console.log(
+          `Processing tool call: ${toolName} with query`,
+          query?.query
+        );
 
         // Execute the tool with the parsed arguments.
-        const result = await toolSelector(toolName, query);
+        const result = await toolSelector(toolName, query?.query);
         conversationHistory.push({
           role: "tool",
           content: result,

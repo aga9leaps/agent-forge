@@ -3,6 +3,9 @@ import ChatController from "../controllers/chatController.js";
 import CustomerInteractionController from "../controllers/customerInteractionController.js";
 import AuthController from "../controllers/authController.js";
 import financeBotController from "../controllers/financeBotController.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
+
 const createAgentRouter = () => {
   const router = express.Router();
 

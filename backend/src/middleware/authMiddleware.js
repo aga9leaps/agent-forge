@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import UserRepository from "../repository/userRepository.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -26,11 +28,13 @@ const authenticateToken = async (req, res, next) => {
 };
 
 // Role-based middleware
-const authorizeRoles = (...roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
-  next();
-};
+const authorizeRoles =
+  (...roles) =>
+  (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    next();
+  };
 
 export { authenticateToken, authorizeRoles };

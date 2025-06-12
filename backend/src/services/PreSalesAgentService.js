@@ -14,6 +14,9 @@ import {
   MODELS,
   SYSTEM_PROMPT,
 } from "../utils/constants.js";
+import { VECTOR_SEARCH_TOOL } from "../agentTools/toolsDefinition.js";
+import dotenv from "dotenv";
+dotenv.config({ path: "./configs/.env" });
 
 class PreSalesAgentService {
   constructor(cronJobService, googleSheetService) {
@@ -63,11 +66,16 @@ class PreSalesAgentService {
         { role: "user", content: query },
       ];
 
-      const response = await AgentService.processRequest(
+      const tools = [VECTOR_SEARCH_TOOL];
+
+      const requestParams = {
         systemPrompt,
         conversationHistory,
-        consumer
-      );
+        consumer,
+        tools,
+      };
+
+      const response = await AgentService.processRequest(requestParams);
 
       await this.storeConversation(consumer, "assistant", response);
 
