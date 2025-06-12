@@ -4,19 +4,13 @@ import CronJobService from "../services/cronJobService.js";
 import GoogleSheetService from "../services/GoogleSheetService.js";
 
 class ChatController {
-  constructor(clientConfig) {
-    this.clientConfig = clientConfig;
-  }
+  constructor() {}
 
   initController() {
-    const cronJobService = new CronJobService(this.clientConfig);
+    const cronJobService = new CronJobService();
     cronJobService.initialize();
-    const googleSheetService = new GoogleSheetService(this.clientConfig);
-    this.clientService = new ClientService(
-      this.clientConfig,
-      cronJobService,
-      googleSheetService
-    );
+    const googleSheetService = new GoogleSheetService();
+    this.clientService = new ClientService(cronJobService, googleSheetService);
   }
 
   async handleChatRequest(req, res) {

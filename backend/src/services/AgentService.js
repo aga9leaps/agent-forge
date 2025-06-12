@@ -1,4 +1,4 @@
-import ToolRegistry from "./ToolRegistry.js";
+import ToolRegistry from "../../core/ToolRegistry.js";
 import { openaiService } from "./serviceConfigs/OpenAIService.js";
 
 class AgentService {

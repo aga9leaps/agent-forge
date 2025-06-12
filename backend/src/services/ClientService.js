@@ -1,4 +1,4 @@
-import AgentService from "../../core/AgentService.js";
+import AgentService from "./AgentService.js";
 import { openaiService } from "../../core/serviceConfigs/OpenAIService.js";
 import WhatsAppService from "../../core/WhatsAppService.js";
 import { z } from "zod";
@@ -8,17 +8,21 @@ import ConsumerRepository from "../repository/consumerRepository.js";
 import { vertexAIService } from "../../core/serviceConfigs/VertexAIService.js";
 import PromptRepository from "../repository/promptRepository.js";
 import { sttService } from "../../core/STTService.js";
+import {
+  DISCOUNTS_DATA,
+  IMAGE_CLASSIFICATION_PROMPT,
+  MODELS,
+  SYSTEM_PROMPT,
+} from "../utils/constants.js";
 
 class ClientService {
-  constructor(clientConfig, cronJobService, googleSheetService) {
-    this.clientConfig = clientConfig;
-
-    const collectionName = this.clientConfig?.databases?.mongo?.collectionName;
-    this.consumerRepository = new ConsumerRepository(collectionName);
-
-    const promptCollectionName =
-      this.clientConfig?.databases?.mongo?.promptCollectionName;
-    this.promptRepository = new PromptRepository(promptCollectionName);
+  constructor(cronJobService, googleSheetService) {
+    this.consumerRepository = new ConsumerRepository(
+      process.env.CONSUMER_COLLECTION
+    );
+    this.promptRepository = new PromptRepository(
+      process.env.PROMPTS_COLLECTION
+    );
 
     this.cronJobService = cronJobService;
     this.googleSheetService = googleSheetService;
@@ -48,16 +52,18 @@ class ClientService {
       await this.storeConversation(consumer, "user", query);
 
       const systemPrompt =
-        this.clientConfig?.prompts.responseGenerationPrompt +
-        `\nCurrent Dealer Discounts:\n ${this.clientConfig?.prompts.discounts
-          .map((discount, index) => `${index + 1}. ${discount}`)
-          .join("\n")}.` +
+        SYSTEM_PROMPT +
+        `\nCurrent Dealer Discounts:\n ${DISCOUNTS_DATA.map(
+          (discount, index) => `${index + 1}. ${discount}`
+        ).join("\n")}.` +
         `\nCurrent customer: ${consumer.name} (${consumer.type} from ${consumer.location})`;
 
       const conversationHistory = [
         ...history,
         { role: "user", content: query },
       ];
+
+      // TODO:
       AgentService.clientConfig = this.clientConfig;
       const response = await AgentService.processRequest(
         systemPrompt,
@@ -91,9 +97,9 @@ class ClientService {
       );
 
       const imageType = await vertexAIService.imageAnalyser(
-        this.clientConfig?.llm?.googleGeminiModel,
+        MODELS.GEMINI_MODEL,
         mediaBase64,
-        this.clientConfig?.prompts?.imageClassifierPrompt
+        IMAGE_CLASSIFICATION_PROMPT
       );
 
       await WhatsAppService.sendMessageToWhatsApp(
@@ -112,7 +118,7 @@ class ClientService {
       }
 
       const analyzeImage = await vertexAIService.imageAnalyser(
-        this.clientConfig?.llm?.googleGeminiModel,
+        MODELS.GEMINI_MODEL,
         mediaBase64,
         activePrompt
       );

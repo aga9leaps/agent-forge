@@ -3,13 +3,10 @@ import EventEmitter from "events";
 import TasksRepository from "../repository/tasksRepository.js";
 
 export default class CronJobService extends EventEmitter {
-  constructor(clientConfig) {
+  constructor() {
     super();
     this.jobs = {};
-    this.clientConfig = clientConfig;
-    const collectionName =
-      this.clientConfig?.databases?.mongo?.tasksCollectionName;
-    this.taskRepository = new TasksRepository(collectionName);
+    this.taskRepository = new TasksRepository(process.env.TASKS_COLLECTION);
   }
 
   async initialize() {

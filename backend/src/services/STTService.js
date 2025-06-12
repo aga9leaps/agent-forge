@@ -1,4 +1,4 @@
-import authConfigs from "../configs/setUp.json" with { type: "json" };
+import authConfigs from "../../configs/setUp.json" with { type: "json" };
 import { vertexAIService } from "./serviceConfigs/VertexAIService.js";
 
 class STTService {

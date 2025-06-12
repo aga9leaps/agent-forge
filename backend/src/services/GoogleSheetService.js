@@ -7,10 +7,8 @@ import ConsumerRepository from '../repository/consumerRepository.js';
 dotenv.config({ path: "../.env" });
 
 export default class GoogleSheetService {
-  constructor(clientConfig) {
-    this.clientConfig = clientConfig;
-    const collectionName = this.clientConfig?.databases?.mongo?.collectionName;
-    this.consumerRepository = new ConsumerRepository(collectionName);
+  constructor() {
+    this.consumerRepository = new ConsumerRepository(process.env.CONSUMER_COLLECTION);
     this.initialized = false;
     this.doc = null;
   }
@@ -25,7 +23,7 @@ export default class GoogleSheetService {
 
       await client.authorize();
       this.doc = new GoogleSpreadsheet(
-        this.clientConfig?.databases?.others.googleSheetId,
+        process.env.GOOGLE_SHEET_ID,
         client
       );
 

@@ -8,11 +8,10 @@ import {
 import WhatsAppService from "../../core/WhatsAppService.js";
 
 export default class ReminderService {
-  constructor(clientConfig) {
-    const collectionName = clientConfig?.databases.mongo.customerCollectionName;
+  constructor() {
     this.remiderRepository = new RemiderRepository();
     this.customerInteractionRepository = new CustomerInteractionRepository(
-      collectionName
+      process.env.CONSUMER_COLLECTION
     );
     this.reminderRules = [];
     this.intervalsArray = [];
@@ -361,12 +360,12 @@ export default class ReminderService {
           success: analysedData.success,
           message: analysedData.message,
         };
-      }      
+      }
 
       const lastActionKey =
         typeOfReminder === "order" ? "last_order_date" : "last_payment_date";
 
-      for (const dealer of analysedData.data) {        
+      for (const dealer of analysedData.data) {
         // Get customer contact details
         const customerDetails =
           await this.customerInteractionRepository.getCustomerDetailsFromParticulars(

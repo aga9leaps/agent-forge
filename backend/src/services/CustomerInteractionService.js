@@ -2,10 +2,9 @@ import WhatsAppService from "../../core/WhatsAppService.js";
 import CustomerInteractionRepository from "../repository/customerInteractionRepository.js";
 
 export default class CustomerInteractionService {
-  constructor(clientConfig) {
-    const collectionName = clientConfig?.databases.mongo.customerCollectionName;
+  constructor() {
     this.customerInteractionRepository = new CustomerInteractionRepository(
-      collectionName
+      process.env.CONSUMER_COLLECTION
     );
   }
 

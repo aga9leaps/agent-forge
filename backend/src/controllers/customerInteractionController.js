@@ -2,15 +2,11 @@ import CustomerInteractionService from "../services/CustomerInteractionService.j
 import ReminderService from "../services/ReminderService.js";
 
 export default class CustomerInteractionController {
-  constructor(clientConfig) {
-    this.clientConfig = clientConfig;
-  }
+  constructor() {}
 
   initController() {
-    this.customerInteractionService = new CustomerInteractionService(
-      this.clientConfig
-    );
-    this.reminderService = new ReminderService(this.clientConfig);
+    this.customerInteractionService = new CustomerInteractionService();
+    this.reminderService = new ReminderService();
   }
 
   async sendBirthdayMessage(req, res) {
@@ -37,10 +33,10 @@ export default class CustomerInteractionController {
     }
   }
 
-   async sendReminders(req, res) {
+  async sendReminders(req, res) {
     try {
       const { typeOfData } = req?.body;
-      const reminder = await this.reminderService.sendReminders(typeOfData)
+      const reminder = await this.reminderService.sendReminders(typeOfData);
 
       return res.status(200).json(reminder);
     } catch (error) {
