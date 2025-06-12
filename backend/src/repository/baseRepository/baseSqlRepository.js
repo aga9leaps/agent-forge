@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import SQLDatabase from "../databases/sql.js";
+import SQLDatabase from "../../databases/sql.js";
 
 class BaseSqlRepository {
   constructor() {

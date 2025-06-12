@@ -1,4 +1,4 @@
-import { vectorSearchTool } from "./vectorSearchTool";
+import { vectorSearchTool } from "./vectorSearchTool.js";
 
 export async function toolSelector(toolName, params) {
   switch (toolName) {

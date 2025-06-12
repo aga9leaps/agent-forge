@@ -1,4 +1,4 @@
-import BaseMongoRepository from "../../core/baseRepository/baseMongoRepository.js";
+import BaseMongoRepository from "./baseRepository/baseMongoRepository.js";
 
 export default class CustomerInteractionRepository extends BaseMongoRepository {
   constructor(collectionName) {

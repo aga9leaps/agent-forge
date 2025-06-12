@@ -1,4 +1,4 @@
-import BaseSqlRepository from "../../core/baseRepository/baseSqlRepository.js";
+import BaseSqlRepository from "./baseRepository/baseSqlRepository.js";
 
 class UserRepository extends BaseSqlRepository {
   constructor() {
@@ -6,12 +6,17 @@ class UserRepository extends BaseSqlRepository {
   }
 
   async findByUsername(username) {
-    const users = await this.executeQuery("SELECT * FROM users WHERE username = ?", [username]);
+    const users = await this.executeQuery(
+      "SELECT * FROM users WHERE username = ?",
+      [username]
+    );
     return users.length ? users[0] : null;
   }
 
   async findById(id) {
-    const users = await this.executeQuery("SELECT * FROM users WHERE id = ?", [id]);
+    const users = await this.executeQuery("SELECT * FROM users WHERE id = ?", [
+      id,
+    ]);
     return users.length ? users[0] : null;
   }
 
@@ -30,7 +35,10 @@ class UserRepository extends BaseSqlRepository {
   }
 
   async getUserByToken(token) {
-    const users = await this.executeQuery("SELECT * FROM users WHERE access_token = ?", [token]);
+    const users = await this.executeQuery(
+      "SELECT * FROM users WHERE access_token = ?",
+      [token]
+    );
     return users.length ? users[0] : null;
   }
 }

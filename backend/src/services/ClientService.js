@@ -1,13 +1,13 @@
 import AgentService from "./AgentService.js";
-import { openaiService } from "../../core/serviceConfigs/OpenAIService.js";
-import WhatsAppService from "../../core/WhatsAppService.js";
+import { openaiService } from "../serviceConfigs/OpenAIService.js";
+import WhatsAppService from "./WhatsAppService.js";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 import PDFDocument from "pdfkit";
 import ConsumerRepository from "../repository/consumerRepository.js";
-import { vertexAIService } from "../../core/serviceConfigs/VertexAIService.js";
+import { vertexAIService } from "../serviceConfigs/VertexAIService.js";
 import PromptRepository from "../repository/promptRepository.js";
-import { sttService } from "../../core/STTService.js";
+import { sttService } from "./STTService.js";
 import {
   DISCOUNTS_DATA,
   IMAGE_CLASSIFICATION_PROMPT,

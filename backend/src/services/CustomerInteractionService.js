@@ -1,4 +1,4 @@
-import WhatsAppService from "../../core/WhatsAppService.js";
+import WhatsAppService from "./WhatsAppService.js";
 import CustomerInteractionRepository from "../repository/customerInteractionRepository.js";
 
 export default class CustomerInteractionService {

@@ -1,5 +1,5 @@
 import path from "path";
-import BaseSqlRepository from "../../core/baseRepository/baseSqlRepository.js";
+import BaseSqlRepository from "./baseRepository/baseSqlRepository.js";
 
 export default class RemiderRepository extends BaseSqlRepository {
   async getRawData(typeOfData) {

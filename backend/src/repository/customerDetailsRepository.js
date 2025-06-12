@@ -1,4 +1,4 @@
-import BaseSqlRepository from "../../core/baseRepository/baseSqlRepository.js";
+import BaseSqlRepository from "./baseRepository/baseSqlRepository.js";
 
 class CustomerDetailsRepository extends BaseSqlRepository {
   async getCustomerByState(state) {

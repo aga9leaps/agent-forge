@@ -1,4 +1,4 @@
-import { formatContextArray } from "../../core/utils/dataHandler.js";
+import { formatContextArray } from "../utils/dataHandler.js";
 import { customerDetailsRepository } from "../repository/customerDetailsRepository.js";
 
 function init() {

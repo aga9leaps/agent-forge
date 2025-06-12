@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import BaseMongoRepository from "../../core/baseRepository/baseMongoRepository.js";
+import BaseMongoRepository from "./baseRepository/baseMongoRepository.js";
 
 export default class TasksRepository extends BaseMongoRepository {
   constructor(collectionName) {

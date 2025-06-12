@@ -1,6 +1,6 @@
 import { toolSelector } from "../agentTools/toolCalls.js";
 import { MODELS } from "../utils/constants.js";
-import { openaiService } from "./serviceConfigs/OpenAIService.js";
+import { openaiService } from "../serviceConfigs/OpenAIService.js";
 
 class AgentService {
   async processRequest(

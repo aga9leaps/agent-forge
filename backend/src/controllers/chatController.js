@@ -1,4 +1,4 @@
-import WhatsAppService from "../../core/WhatsAppService.js";
+import WhatsAppService from "../services/WhatsAppService.js";
 import ClientService from "../services/ClientService.js";
 import CronJobService from "../services/cronJobService.js";
 import GoogleSheetService from "../services/GoogleSheetService.js";

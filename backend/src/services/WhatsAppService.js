@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { axiosInstance } from "./utils/axiosInstance.js";
+import { axiosInstance } from "../utils/axiosInstance.js";
 import axios from "axios";
 import dotenv from "dotenv";
 dotenv.config({ path: "./configs/.env" });

@@ -5,7 +5,7 @@ import {
   calculateStatistics,
   categorizeDealer,
 } from "../utils/statisticsHelper.js";
-import WhatsAppService from "../../core/WhatsAppService.js";
+import WhatsAppService from "./WhatsAppService.js";
 
 export default class ReminderService {
   constructor() {

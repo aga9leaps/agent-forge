@@ -1,4 +1,4 @@
-import MongoDatabase from "../databases/mongo.js";
+import MongoDatabase from "../../databases/mongo.js";
 
 class BaseMongoRepository {
   constructor(collectionName) {
