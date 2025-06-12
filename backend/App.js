@@ -2,8 +2,9 @@ import express from "express";
 import ConfigLoader from "./core/ConfigLoader.js";
 import initializeDatabases from "./core/utils/initializeDatabases.js";
 import createAgentRouter from "./src/routes/agentRouter.js";
-
+import cors from "cors";
 const app = express();
+app.use(cors());
 const PORT = process.env.PORT || 3000;
 let clientConfig;
 

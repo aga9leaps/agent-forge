@@ -32,12 +32,27 @@ export async function downloadFileFromS3(s3Key, localFilePath) {
 }
 
 // Function to upload a file to S3
-export async function uploadFileToS3(content, s3Key) {
+// export async function uploadFileToS3(content, s3Key) {
+//   const params = {
+//     Bucket: process.env.TALLY_AWS_BUCKET_NAME,
+//     Key: s3Key,
+//     Body: typeof content === "string" ? content : fs.readFileSync(content),
+//     ContentType: "text/csv",
+//   };
+
+//   try {
+//     await s3.upload(params).promise();
+//     console.log(`✅ Uploaded ${s3Key} to S3.`);
+//   } catch (err) {
+//     console.error(`❌ Failed to upload ${s3Key}:`, err);
+//   }
+// }
+export async function uploadFileToS3(content, s3Key, contentType = "application/pdf") {
   const params = {
     Bucket: process.env.TALLY_AWS_BUCKET_NAME,
     Key: s3Key,
-    Body: typeof content === "string" ? content : fs.readFileSync(content),
-    ContentType: "text/csv",
+    Body: content,
+    ContentType: contentType,
   };
 
   try {

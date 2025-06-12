@@ -1,7 +1,8 @@
 import express from "express";
 import ChatController from "../controllers/chatController.js";
 import CustomerInteractionController from "../controllers/customerInteractionController.js";
-
+import AuthController from "../controllers/authController.js";
+import financeBotController from "../controllers/financeBotController.js";
 const createAgentRouter = (clientConfig) => {
   const router = express.Router();
 
@@ -12,6 +13,13 @@ const createAgentRouter = (clientConfig) => {
     clientConfig
   );
   customerInteractionController.initController();
+
+    // AuthController integration
+const authController = new AuthController();
+  // Auth routes
+  router.post("/login", (req, res) => authController.login(req, res));
+  router.post("/logout", (req, res) => authController.logout(req, res));
+
 
   router.post("/chat", async (req, res) => {
     await chatController.handleChatRequest(req, res);
@@ -25,6 +33,11 @@ const createAgentRouter = (clientConfig) => {
    router.post("/send-reminder", async (req, res) => {
     await customerInteractionController.sendReminders(req, res);
   });
+
+  // Finance Bot Routes
+  router.get('/download/:reportName/:fromDate/:toDate', financeBotController.downloadReport);
+  router.post("/finance-bot/chat", financeBotController.chat);
+
 
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {

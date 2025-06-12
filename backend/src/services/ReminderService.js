@@ -338,7 +338,7 @@ export default class ReminderService {
   async sendReminders(typeOfReminder) {
     // TODO: For testing
     // Check for reminders that need to be sent today
-    const today = new Date("2025-05-27T00:00:00");
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
