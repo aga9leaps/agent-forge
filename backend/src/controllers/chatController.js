@@ -1,5 +1,5 @@
 import WhatsAppService from "../services/WhatsAppService.js";
-import ClientService from "../services/ClientService.js";
+import PreSalesAgentService from "../services/PreSalesAgentService.js";
 import CronJobService from "../services/cronJobService.js";
 import GoogleSheetService from "../services/GoogleSheetService.js";
 
@@ -10,7 +10,10 @@ class ChatController {
     const cronJobService = new CronJobService();
     cronJobService.initialize();
     const googleSheetService = new GoogleSheetService();
-    this.clientService = new ClientService(cronJobService, googleSheetService);
+    this.preSalesAgentService = new PreSalesAgentService(
+      cronJobService,
+      googleSheetService
+    );
   }
 
   async handleChatRequest(req, res) {
@@ -23,7 +26,7 @@ class ChatController {
     }
 
     try {
-      const response = await this.clientService.handleChatRequest(
+      const response = await this.preSalesAgentService.handleChatRequest(
         message,
         phoneNumber
       );
@@ -52,7 +55,7 @@ class ChatController {
     }
 
     try {
-      const response = await this.clientService.handleImageRequest(
+      const response = await this.preSalesAgentService.handleImageRequest(
         imageUrl,
         phoneNumber
       );
@@ -96,17 +99,18 @@ class ChatController {
 
           switch (message.type) {
             case "text":
-              const response = await this.clientService.handleChatRequest(
-                text,
-                phoneNumber
-              );
+              const response =
+                await this.preSalesAgentService.handleChatRequest(
+                  text,
+                  phoneNumber
+                );
               await WhatsAppService.sendMessageToWhatsApp(
                 phoneNumber,
                 response
               );
               break;
             case "image":
-              await this.clientService.handleImageRequest(
+              await this.preSalesAgentService.handleImageRequest(
                 message.image.id,
                 phoneNumber
               );
@@ -114,7 +118,7 @@ class ChatController {
             case "audio":
               console.log("Audio message received:", message.audio.id);
 
-              await this.clientService.handleAudioRequest(
+              await this.preSalesAgentService.handleAudioRequest(
                 message.audio.id,
                 phoneNumber
               );

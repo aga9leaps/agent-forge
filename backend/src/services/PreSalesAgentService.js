@@ -15,7 +15,7 @@ import {
   SYSTEM_PROMPT,
 } from "../utils/constants.js";
 
-class ClientService {
+class PreSalesAgentService {
   constructor(cronJobService, googleSheetService) {
     this.consumerRepository = new ConsumerRepository(
       process.env.CONSUMER_COLLECTION
@@ -121,7 +121,7 @@ class ClientService {
         activePrompt
       );
       console.log(
-        "🚀 ~ ClientService ~ handleImageRequest ~ analyzeImage:",
+        "🚀 ~ PreSalesAgentService ~ handleImageRequest ~ analyzeImage:",
         analyzeImage
       );
     } catch (error) {
@@ -140,13 +140,13 @@ class ClientService {
 
       const transcription = await sttService.transcribeAudio(mediaBase64);
       console.log(
-        "🚀 ~ ClientService ~ handleAudioRequest ~ transcription:",
+        "🚀 ~ PreSalesAgentService ~ handleAudioRequest ~ transcription:",
         transcription
       );
 
       const response = await this.handleChatRequest(transcription, phoneNumber);
       console.log(
-        "🚀 ~ ClientService ~ handleAudioRequest ~ response:",
+        "🚀 ~ PreSalesAgentService ~ handleAudioRequest ~ response:",
         response
       );
       await WhatsAppService.sendMessageToWhatsApp(phoneNumber, response);
@@ -370,4 +370,4 @@ class ClientService {
   }
 }
 
-export default ClientService;
+export default PreSalesAgentService;
