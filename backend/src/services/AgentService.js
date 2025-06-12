@@ -93,6 +93,7 @@ class AgentService {
 
         // Execute the tool with the parsed arguments.
         const result = await toolSelector(toolName, query?.query);
+        console.log("🚀 ~ AgentService ~ result:", result);
         conversationHistory.push({
           role: "tool",
           content: result,
