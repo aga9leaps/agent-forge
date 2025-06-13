@@ -35,10 +35,8 @@ const createAgentRouter = () => {
   });
 
   // Finance Bot Routes
-  router.get(
-    "/download/:reportName/:fromDate/:toDate",
-    financeBotController.downloadReport
-  );
+  router.get("/download/:reportName/:fromDate/:toDate",financeBotController.downloadReport);
+  router.get("/view/:reportName/:fromDate/:toDate",financeBotController.viewReport);
   router.post("/finance-bot/chat", financeBotController.chat);
 
   // Whatsapp Webhook Listeners

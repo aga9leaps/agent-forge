@@ -58,7 +58,7 @@ export async function fetchProfitAndLossAndUploadPDF(fromDate, toDate) {
             await browser.close();
 
             // Upload PDF to S3
-            const s3Key = `Tally/tally-pdf-reports/profit_and_loss_report_copy_${fromDate}_${toDate}.pdf`;
+            const s3Key = `Tally/tally-pdf-reports/profit_and_loss_report_${fromDate}_${toDate}.pdf`;
             await uploadFileToS3(pdfBuffer, s3Key, "application/pdf");
             const s3Url = `https://${process.env.TALLY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
             console.log("Profit and Loss PDF uploaded to S3:", s3Url);
