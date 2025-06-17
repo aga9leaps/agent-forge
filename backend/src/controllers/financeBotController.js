@@ -37,10 +37,7 @@ import { fetchCashFlowProjectionAndUploadPDF } from "../../Tally/FinanacialRepor
 import { fetchExpenseAnalysisAndUploadPDF } from "../../Tally/FinanacialReports/ExpenseAnalysisReport.js";
 const chat = async (req, res) => {
   const { message } = req.body;
-
-  // Date parsing block (handles various formats)
-  let fromDate = "20240401";
-  let toDate = "20240831";
+  let fromDate, toDate;
 
   // 1. Try to extract YYYYMMDD or YYYY-MM-DD
   const dateRegex = /(\d{4})[-]?(\d{2})[-]?(\d{2})/g;
@@ -59,18 +56,15 @@ const chat = async (req, res) => {
       may: "05", june: "06", july: "07", august: "08",
       september: "09", october: "10", november: "11", december: "12"
     };
-    // e.g. "from april to august 2025" or "from april 2025 to august 2025"
     const monthPattern = /from\s+([a-z]+)(?:\s+(\d{4}))?\s*(?:to|-)\s*([a-z]+)(?:\s+(\d{4}))?/i;
     const monthMatch = message.match(monthPattern);
     if (monthMatch) {
       const startMonth = monthMap[monthMatch[1].toLowerCase()];
       const endMonth = monthMap[monthMatch[3].toLowerCase()];
-      // Prefer year after each month, else use the last year found
       const year1 = monthMatch[2] || monthMatch[4];
       const year2 = monthMatch[4] || monthMatch[2];
       if (startMonth && endMonth && year1) {
         fromDate = `${year1}${startMonth}01`;
-        // Get last day of end month
         const endDateObj = new Date(Number(year2 || year1), Number(endMonth), 0);
         const endDay = String(endDateObj.getDate()).padStart(2, "0");
         toDate = `${year2 || year1}${endMonth}${endDay}`;
@@ -78,28 +72,69 @@ const chat = async (req, res) => {
     }
   }
 
-  // Determine which report to generate
   let result;
   const lowerMsg = message.toLowerCase();
-  if (lowerMsg.includes("profit") || lowerMsg.includes("p&l")) {
-    result = await fetchProfitAndLossAndUploadPDF(fromDate, toDate);
-  } else if (lowerMsg.includes("ratio")) {
-    result = await fetchRatioAnalysisAndUploadPDF(fromDate, toDate);
-  } else if (lowerMsg.includes("cash flow")) {
-    result = await fetchCashFlowStatementAndUploadPDF(fromDate, toDate);
-  }else if (lowerMsg.includes("cash flow projection") || lowerMsg.includes("cash flow forecast") || lowerMsg.includes("projection")) {
-    result = await fetchCashFlowProjectionAndUploadPDF(fromDate, toDate);
-  }else if (lowerMsg.includes("expense analysis") || lowerMsg.includes("expense report")) {
-    // Special case for Expense Analysis Report
-  result = await fetchExpenseAnalysisAndUploadPDF(fromDate, toDate);
-  } else {
-    reply: "We offer the following finance reports: Profit and Loss, Ratio Analysis, Cash Flow Statement, Cash Flow Projection, and Expense Analysis. Please let me know which report you need and for which date range (e.g., April 2024). If you need help choosing, just ask!"
-  }
 
-  return res.json({
-    reply: result.message,
-    downloadUrl: result.downloadUrl
-  });
+  try {
+    // First check if we have a report type without dates
+    if (lowerMsg.includes("profit") || lowerMsg.includes("p&l") || 
+        lowerMsg.includes("ratio") || lowerMsg.includes("cash flow") || 
+        lowerMsg.includes("expense")) {
+      
+      if (!fromDate || !toDate) {
+        return res.json({
+          reply: "I see you're interested in a report. Could you please specify the date range? You can:\n" +
+                "• Use specific dates (e.g., 2024-04-01 to 2024-04-30)\n" +
+                "• Use month names (e.g., from April to June 2024)\n" +
+                "• Or just mention a single month (e.g., April 2024)"
+        });
+      }
+    }
+
+    // If no report type is mentioned, list available reports
+    if (!lowerMsg.includes("profit") && !lowerMsg.includes("p&l") && 
+        !lowerMsg.includes("ratio") && !lowerMsg.includes("cash flow") && 
+        !lowerMsg.includes("expense")) {
+      return res.json({
+        reply: "We offer the following finance reports:\n" +
+              "• Profit and Loss (P&L)\n" +
+              "• Ratio Analysis\n" +
+              "• Cash Flow Statement\n" +
+              "• Cash Flow Projection\n" +
+              "• Expense Analysis\n\n" +
+              "Which report would you like? Please also specify the date range (e.g., 'Show me the P&L report for April 2024')"
+      });
+    }
+
+    // Handle report selection with proper ordering of conditions
+    if (lowerMsg.includes("profit") || lowerMsg.includes("p&l")) {
+      result = await fetchProfitAndLossAndUploadPDF(fromDate, toDate);
+    } else if (lowerMsg.includes("ratio")) {
+      result = await fetchRatioAnalysisAndUploadPDF(fromDate, toDate);
+    } else if (lowerMsg.includes("cash flow projection") || lowerMsg.includes("cash flow forecast")) {
+      result = await fetchCashFlowProjectionAndUploadPDF(fromDate, toDate);
+    } else if (lowerMsg.includes("cash flow")) {
+      result = await fetchCashFlowStatementAndUploadPDF(fromDate, toDate);
+    } else if (lowerMsg.includes("expense analysis") || lowerMsg.includes("expense report")) {
+      result = await fetchExpenseAnalysisAndUploadPDF(fromDate, toDate);
+    }
+
+    // Verify result exists
+    if (!result || !result.message) {
+      throw new Error("Failed to generate report");
+    }
+
+    return res.json({
+      reply: result.message,
+      downloadUrl: result.downloadUrl
+    });
+
+  } catch (error) {
+    console.error("Error generating report:", error);
+    return res.status(500).json({
+      reply: "Sorry, there was an error generating your report. Please try again or contact support if the problem persists."
+    });
+  }
 };
 
 const downloadReport = async (req, res) => {
