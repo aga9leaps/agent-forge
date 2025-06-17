@@ -32,7 +32,9 @@ import fs from "fs";
 import os from "os";
 import { fetchProfitAndLossAndUploadPDF } from "../../Tally/FinanacialReports/ProfitLossReport.js";
 import { fetchRatioAnalysisAndUploadPDF } from "../../Tally/FinanacialReports/RatioAnalysisReport.js";
-
+import { fetchCashFlowStatementAndUploadPDF } from "../../Tally/FinanacialReports/CashFlowStatementReport.js";
+import { fetchCashFlowProjectionAndUploadPDF } from "../../Tally/FinanacialReports/CashFlowProjectionReport.js";
+import { fetchExpenseAnalysisAndUploadPDF } from "../../Tally/FinanacialReports/ExpenseAnalysisReport.js";
 const chat = async (req, res) => {
   const { message } = req.body;
 
@@ -83,8 +85,15 @@ const chat = async (req, res) => {
     result = await fetchProfitAndLossAndUploadPDF(fromDate, toDate);
   } else if (lowerMsg.includes("ratio")) {
     result = await fetchRatioAnalysisAndUploadPDF(fromDate, toDate);
+  } else if (lowerMsg.includes("cash flow")) {
+    result = await fetchCashFlowStatementAndUploadPDF(fromDate, toDate);
+  }else if (lowerMsg.includes("cash flow projection") || lowerMsg.includes("cash flow forecast") || lowerMsg.includes("projection")) {
+    result = await fetchCashFlowProjectionAndUploadPDF(fromDate, toDate);
+  }else if (lowerMsg.includes("expense analysis") || lowerMsg.includes("expense report")) {
+    // Special case for Expense Analysis Report
+  result = await fetchExpenseAnalysisAndUploadPDF(fromDate, toDate);
   } else {
-    return res.json({ reply: "Please specify a valid report: Profit and Loss or Ratio Analysis." });
+    reply: "We offer the following finance reports: Profit and Loss, Ratio Analysis, Cash Flow Statement, Cash Flow Projection, and Expense Analysis. Please let me know which report you need and for which date range (e.g., April 2024). If you need help choosing, just ask!"
   }
 
   return res.json({
