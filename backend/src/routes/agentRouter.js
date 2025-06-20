@@ -3,6 +3,12 @@ import ChatController from "../controllers/chatController.js";
 import CustomerInteractionController from "../controllers/customerInteractionController.js";
 import AuthController from "../controllers/authController.js";
 import financeBotController from "../controllers/financeBotController.js";
+import {
+  translateText,
+  translateMessages,
+  detectLanguage,
+  getSupportedLanguages,
+} from "../controllers/translationController.js";
 import dotenv from "dotenv";
 dotenv.config({ path: "./configs/.env" });
 
@@ -60,6 +66,12 @@ const createAgentRouter = () => {
     },
     financeBotController.speechToText
   );
+
+  // Translation Routes
+  router.post("/translate/text", translateText);
+  router.post("/translate/messages", translateMessages);
+  router.post("/translate/detect-language", detectLanguage);
+  router.get("/translate/supported-languages", getSupportedLanguages);
 
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {

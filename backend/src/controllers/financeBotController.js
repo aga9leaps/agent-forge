@@ -270,6 +270,10 @@ const speechToText = async (req, res) => {
       });
     }
 
+    // Get language from request body
+    const targetLanguage = req.body.language || "en";
+    console.log("Target language for speech recognition:", targetLanguage);
+
     console.log("Audio file details:", {
       originalname: req.file.originalname,
       mimetype: req.file.mimetype,
@@ -296,8 +300,9 @@ const speechToText = async (req, res) => {
     }
 
     // Use Sarvam AI service for speech-to-text conversion
-    const transcriptionResult = await sarvamAiService.sttAndTarnslateAudio(
-      req.file.buffer
+    const transcriptionResult = await sarvamAiService.sttAudio(
+      req.file.buffer,
+      targetLanguage
     );
 
     console.log("Transcription result:", transcriptionResult);

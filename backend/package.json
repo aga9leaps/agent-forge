@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@google-cloud/speech": "^7.0.1",
+    "@google-cloud/translate": "^8.5.0",
     "@google-cloud/vertexai": "^1.9.3",
     "@zilliz/milvus2-sdk-node": "^2.5.7",
     "aws-sdk": "^2.1692.0",
