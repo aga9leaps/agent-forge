@@ -35,9 +35,31 @@ const createAgentRouter = () => {
   });
 
   // Finance Bot Routes
-  router.get("/download/:reportName/:fromDate/:toDate",financeBotController.downloadReport);
-  router.get("/view/:reportName/:fromDate/:toDate",financeBotController.viewReport);
+  router.get(
+    "/download/:reportName/:fromDate/:toDate",
+    financeBotController.downloadReport
+  );
+  router.get(
+    "/view/:reportName/:fromDate/:toDate",
+    financeBotController.viewReport
+  );
   router.post("/finance-bot/chat", financeBotController.chat);
+  router.post(
+    "/finance-bot/speech-to-text",
+    (req, res, next) => {
+      financeBotController.upload.single("audio")(req, res, (err) => {
+        if (err) {
+          console.error("Multer error:", err.message);
+          return res.status(400).json({
+            error: "File upload error",
+            details: err.message,
+          });
+        }
+        next();
+      });
+    },
+    financeBotController.speechToText
+  );
 
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {
