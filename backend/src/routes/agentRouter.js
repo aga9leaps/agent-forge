@@ -58,18 +58,64 @@ const createAgentRouter = () => {
     financeBotController.speechToText
   );
 
+  // New endpoint for speech-to-text with chat processing
+  router.post(
+    "/finance-bot/speech-to-text-chat",
+    authenticateToken,
+    (req, res, next) => {
+      financeBotController.upload.single("audio")(req, res, (err) => {
+        if (err) {
+          console.error("Multer error:", err.message);
+          return res.status(400).json({
+            error: "File upload error",
+            details: err.message,
+          });
+        }
+        // Set processAsChat to true for this endpoint
+        req.body.processAsChat = true;
+        next();
+      });
+    },
+    financeBotController.speechToText
+  );
+
   // Translation Routes
-  // router.post("/translate/text", translateText);
-  // router.post("/translate/messages", translateMessages);
-  // router.post("/translate/detect-language", detectLanguage);
-  // router.get("/translate/supported-languages", getSupportedLanguages);
-  router.get("/download/:reportName/:fromDate/:toDate", financeBotController.downloadReport);
-  router.get("/view/:reportName/:fromDate/:toDate", financeBotController.viewReport);
-  router.get("/view/:reportName/:fromDate/:toDate",financeBotController.viewReport);
-  router.post("/finance-bot/chat",authenticateToken, financeBotController.chat);
-  router.get("/finance-bot/history",authenticateToken, financeBotController.getChatHistory);
-  router.post("/finance-bot/clearChatHistory",authenticateToken, financeBotController.clearChatHistory);
-  router.post("/finance-bot/feedback", authenticateToken, financeBotController.saveFeedback);
+  router.post("/translate/text", translateText);
+  router.post("/translate/messages", translateMessages);
+  router.post("/translate/detect-language", detectLanguage);
+  router.get("/translate/supported-languages", getSupportedLanguages);
+  router.get(
+    "/download/:reportName/:fromDate/:toDate",
+    financeBotController.downloadReport
+  );
+  router.get(
+    "/view/:reportName/:fromDate/:toDate",
+    financeBotController.viewReport
+  );
+  router.get(
+    "/view/:reportName/:fromDate/:toDate",
+    financeBotController.viewReport
+  );
+  router.post(
+    "/finance-bot/chat",
+    authenticateToken,
+    financeBotController.chat
+  );
+  router.get(
+    "/finance-bot/history",
+    authenticateToken,
+    financeBotController.getChatHistory
+  );
+  router.post(
+    "/finance-bot/clearChatHistory",
+    authenticateToken,
+    financeBotController.clearChatHistory
+  );
+  router.post(
+    "/finance-bot/feedback",
+    authenticateToken,
+    financeBotController.saveFeedback
+  );
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {
     const mode = req.query["hub.mode"];
