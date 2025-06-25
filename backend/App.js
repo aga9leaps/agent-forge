@@ -22,6 +22,7 @@ async function initializeApplication() {
 await initializeApplication();
 
 app.use(express.json());
+app.use(express.static(".")); // Serve static files from the current directory
 app.use("/api", createAgentRouter());
 
 app.listen(PORT, () => {

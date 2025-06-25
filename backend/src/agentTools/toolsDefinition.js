@@ -18,6 +18,37 @@ export const VECTOR_SEARCH_TOOL = {
   },
 };
 
+export const EXTRACT_METRIC_TOOL = {
+  type: "function",
+  function: {
+    name: "extractMetric",
+    description:
+      "Extract a specific financial metric or value from a financial report. Use this tool when the user asks for a specific value or metric from any financial report, like 'What is the profit margin?' or 'Show me the current ratio'.",
+    parameters: {
+      type: "object",
+      properties: {
+        metric: {
+          type: "string",
+          description: "The financial metric or value the user is asking for, such as 'net profit', 'gross margin', 'current ratio', etc.",
+        },
+        fromDate: {
+          type: "string",
+          description: "Start date in YYYYMMDD format.",
+        },
+        toDate: {
+          type: "string",
+          description: "End date in YYYYMMDD format.",
+        },
+        reportType: {
+          type: "string",
+          description: "Optional. The specific report type to extract from: 'profit_and_loss_report', 'ratio_analysis_report', 'cash_flow_statement_report', 'cash_flow_projection_report', or 'expense_analysis_report'.",
+        },
+      },
+      required: ["metric", "fromDate", "toDate"],
+    },
+  },
+};
+
 export const RATIO_ANALYSIS_REPORT_TOOL = {
   type: "function",
   function: {

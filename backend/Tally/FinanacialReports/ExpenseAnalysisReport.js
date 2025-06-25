@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import puppeteer from "puppeteer";
-import { uploadFileToS3 } from "../s3Utils.js";
+import { fetchTallyReportAndUploadPDF, formatDateRange } from "./tallyReportUtils.js";
 import dotenv from "dotenv";
 dotenv.config({ path: "../../configs/.env" });
 
@@ -162,21 +162,11 @@ export async function fetchExpenseAnalysisAndUploadPDF(fromDate, toDate) {
   </body>
 </html>
 `;
-
-  // 3. Generate PDF
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.setContent(minimalHTML, { waitUntil: "networkidle0" });
-  const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-  await browser.close();
-
-  // 4. Upload to S3
-  const s3Key = `Tally/tally-pdf-reports/expense_analysis_report_${fromDate}_${toDate}.pdf`;
-  await uploadFileToS3(pdfBuffer, s3Key, "application/pdf");
-  const downloadUrl = `${process.env.BACKEND_BASE_URL}/api/download/expense_analysis_report/${fromDate}/${toDate}`;
-
-  return {
-    message: "Your Expense Analysis Report is ready. You can download it using the link below.",
-    downloadUrl
-  };
+  // Process the report using the common utility function
+  return await fetchTallyReportAndUploadPDF({
+    tallyRequest: minimalHTML,  // Use our processed HTML
+    reportName: 'expense_analysis_report',    fromDate,
+    toDate,
+    replyMessage: `Your Expense Analysis Report for ${formatDateRange(fromDate, toDate)} is ready. You can download it using the link below.`
+  });
 }

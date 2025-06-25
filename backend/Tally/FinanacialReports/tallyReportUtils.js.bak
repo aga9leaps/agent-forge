@@ -8,73 +8,6 @@ dotenv.config({ path: "../../configs/.env" });
 
 const TALLY_URL = process.env.TALLY_URL;
 
-// Function to fetch a Tally report and upload the PDF to S3
-export async function fetchTallyReportAndUploadPDF({
-  tallyRequest,
-  reportName,
-  fromDate,
-  toDate,
-  replyMessage
-}) {
-  try {
-    console.log(`Fetching ${reportName} from Tally server...`);
-    
-    const s3Key = `tally-reports/${reportName}/${fromDate}-${toDate}.pdf`;
-    
-    const response = await axios.post(TALLY_URL, tallyRequest, {
-      headers: {
-        'Content-Type': 'text/plain'
-      }
-    });
-    
-    if (response && response.data) {
-      console.log(`Successfully received ${reportName} data from Tally`);
-      
-      // Generate PDF from the HTML response
-      console.log("Launching browser to generate PDF...");
-      const browser = await puppeteer.launch({ headless: "new" });
-      const page = await browser.newPage();
-      
-      await page.setContent(response.data, { waitUntil: "networkidle0" });
-      
-      const pdfBuffer = await page.pdf({
-        format: "A4", 
-        landscape: true, 
-        margin: { top: "10mm", right: "5mm", bottom: "10mm", left: "5mm" },
-        printBackground: true
-      });
-      
-      await browser.close();
-      console.log("PDF generated successfully");
-      
-      // Parse the PDF content for structured data
-      const parsedData = await parsePDFContent(pdfBuffer, reportName);
-      
-      // Upload the PDF to S3
-      await uploadFileToS3(pdfBuffer, s3Key, "application/pdf");
-      const s3Url = `https://${process.env.TALLY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
-      console.log(`${reportName} PDF uploaded to S3:`, s3Url);
-
-      const downloadUrl = `${process.env.BACKEND_BASE_URL}/api/download/${reportName}/${fromDate}/${toDate}`;
-
-      return {
-        message: replyMessage,
-        downloadUrl,
-        parsedData // Include the parsed data in the response
-      };
-    } else {
-      throw new Error("No data received from Tally");
-    }
-  } catch (error) {
-    console.error(`Error fetching or processing ${reportName} report:`, error.message);
-    if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Data:", error.response.data);
-    }
-    throw error;
-  }
-}
-
 // Mapping of user-friendly terms to technical report terms
 const TERM_MAPPING = {
   // Profit & Loss terms - Basic metrics
@@ -1183,15 +1116,13 @@ export function findMatchingMetric(pdfData, query) {
   
   // Lowercase and normalize the query for easier matching
   const lowerQuery = query.toLowerCase();
-  // Special handling for profit margin - this is a common request with special mapping
+    // Special handling for profit margin - this is a common request with special mapping
   if (lowerQuery.includes('profit margin')) {
-    console.log("Special handling for profit margin metric - should be coming from ratio analysis report");
+    console.log("Special handling for profit margin metric");
     
     // First try net profit percentage (primary metric for profit margin)
-    if (pdfData['net_profit_percentage'] || pdfData['net_profit_%']) {
-      // Handle both formats of the key
-      const netProfitPct = pdfData['net_profit_percentage'] || pdfData['net_profit_%'];
-      let cleanedValue = cleanValue(netProfitPct);
+    if (pdfData['net_profit_percentage']) {
+      let cleanedValue = cleanValue(pdfData['net_profit_percentage']);
       
       // Make sure it includes the % symbol
       if (!cleanedValue.includes('%')) {
@@ -1203,16 +1134,13 @@ export function findMatchingMetric(pdfData, query) {
         key: 'net_profit_percentage',
         value: cleanedValue,
         exact: true,
-        reportType: 'ratio_analysis_report',
         displayName: 'Profit Margin'
       };
     }
     
     // Then try gross profit percentage as fallback
-    if (pdfData['gross_profit_percentage'] || pdfData['gross_profit_%']) {
-      // Handle both formats of the key
-      const grossProfitPct = pdfData['gross_profit_percentage'] || pdfData['gross_profit_%'];
-      let cleanedValue = cleanValue(grossProfitPct);
+    if (pdfData['gross_profit_percentage']) {
+      let cleanedValue = cleanValue(pdfData['gross_profit_percentage']);
       
       // Make sure it includes the % symbol
       if (!cleanedValue.includes('%')) {
@@ -1224,7 +1152,6 @@ export function findMatchingMetric(pdfData, query) {
         key: 'gross_profit_percentage',
         value: cleanedValue,
         exact: false,
-        reportType: 'ratio_analysis_report',
         mappedFrom: 'profit margin',
         displayName: 'Profit Margin'
       };
@@ -1673,14 +1600,7 @@ function escapeRegExp(string) {
 // Function to detect which report type a query is referring to
 export function detectReportTypeFromQuery(query) {
   const lowerQuery = query.toLowerCase();
-  
-  // First check for profit margin which should always come from ratio analysis report
-  if (lowerQuery.includes('profit margin')) {
-    console.log("Detected profit margin query - directing to ratio analysis report");
-    return 'ratio_analysis_report';
-  }
-  
-  // Next, check if specific P&L metrics like "gross loss b/f" are mentioned
+    // First, check if specific P&L metrics like "gross loss b/f" are mentioned
   // These should be directed to profit & loss report
   const plSpecificTerms = [
     'gross loss b/f', 'gross loss bf', 'gross loss brought forward',
@@ -1741,13 +1661,69 @@ export function detectReportTypeFromQuery(query) {
         return 'expense_analysis_report';
       }
       
-      // Default to profit & loss as the most common report
-      console.log(`Defaulting to profit_and_loss_report for metric: ${userTerm}`);
-      return 'profit_and_loss_report';
+      // Default to profit & loss as the most common report        matchCount++;
+      }
     }
+    
+    if (matchCount > 0) {
+      console.log(`Detected ${reportType} with ${matchCount} keyword matches`);
+      return reportType;
+    }
+    
+    console.log(`Could not detect report type from query`);
+    return null;
   }
   
-  // If all else fails, default to profit & loss
-  console.log("Could not detect report type, defaulting to profit_and_loss_report");
-  return 'profit_and_loss_report';
+  // If no clear match, try to infer from the metrics being asked about
+  for (const [userTerm, technicalTerms] of Object.entries(TERM_MAPPING)) {
+    if (lowerQuery.includes(userTerm)) {Request,
+      // Check which report is most likely to contain this metricy,
+      if (userTerm.includes('ratio') || userTerm.includes('turnover') || userTerm.includes('return on')) {
+        console.log(`Inferred ratio_analysis_report from metric: ${userTerm}`);
+        return 'ratio_analysis_report';
+      }ate
+      {
+      if (userTerm.includes('cash') || userTerm.includes('flow')) {try {
+        // Determine if it's a projection or statementTALLY_URL, tallyRequest, {
+        if (lowerQuery.includes('projection') || lowerQuery.includes('forecast')) {
+          console.log(`Inferred cash_flow_projection_report from metric: ${userTerm}`);
+          return 'cash_flow_projection_report';
+        } else {    if (response && response.data) {
+          console.log(`Inferred cash_flow_statement_report from metric: ${userTerm}`);ess: "new" });
+          return 'cash_flow_statement_report';age = await browser.newPage();
+        }e.setContent(response.data, { waitUntil: "networkidle0" });
+      }nst pdfBuffer = await page.pdf({
+      ", 
+      if (userTerm.includes('expense') || userTerm.includes('spending') || pe: true, 
+          userTerm.includes('cost') || userTerm.includes('expenditure')) {gin: { top: "10mm", right: "5mm", bottom: "10mm", left: "5mm" },
+        console.log(`Inferred expense_analysis_report from metric: ${userTerm}`);printBackground: true
+        return 'expense_analysis_report';  });
+      }wait browser.close();
+      
+      // Default to profit & loss as the most common report
+      const parsedData = await parsePDFContent(pdfBuffer, reportName);
+      
+      // Upload the PDF to S3
+      await uploadFileToS3(pdfBuffer, s3Key, "application/pdf");
+      const s3Url = `https://${process.env.TALLY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+      console.log(`${reportName} PDF uploaded to S3:`, s3Url);
+
+      const downloadUrl = `${process.env.BACKEND_BASE_URL}/api/download/${reportName}/${fromDate}/${toDate}`;
+
+      return {
+        message: replyMessage,
+        downloadUrl,
+        parsedData // Include the parsed data in the response
+      };
+    } else {
+      throw new Error("No data received from Tally");
+    }
+  } catch (error) {
+    console.error(`Error fetching or processing ${reportName} report:`, error.message);
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("Data:", error.response.data);
+    }
+    throw error;
+  }
 }

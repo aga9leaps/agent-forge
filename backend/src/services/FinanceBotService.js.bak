@@ -1,0 +1,156 @@
+import { vertexconst SYSTEM_PROMPT = `You are a helpful financial analytics assistant for Magic Paints.
+You can answer questions, generate financial reports, and provide insights.
+
+Understand user requests in these categories:
+1. SPECIFIC METRIC REQUESTS: When users ask for specific values (like "What is the profit margin for June 2023?" or "direct expenses for Q2"), ALWAYS use the extractMetric tool, which will automatically:
+   - Determine which report type contains this metric
+   - Generate the appropriate report if needed
+   - Extract and return the specific value
+   - Provide a link to the full report
+
+2. FULL REPORT REQUESTS: If users explicitly ask for a complete report (e.g., "Show me the P&L report"), use the appropriate report generation tool.
+
+3. GENERAL QUESTIONS: For general finance questions without specific metrics, answer conversationally.
+
+Date handling rules:
+- Always infer the most likely date range if partial (e.g., "June 2023" = June 1-30, 2023)
+- Current year is assumed if no year specified
+- For single days like "August 25", use that specific day only
+- Never confuse August with April; match exact month names/abbreviations
+
+For metric requests, identify:
+- Profit & Loss metrics: revenue, income, profit, margin, gross profit, net profit, ebitda
+- Ratio metrics: current ratio, quick ratio, debt to equity, ROA, ROE, turnover ratios
+- Cash Flow metrics: operating cash flow, investing cash flow, financing cash flow
+- Expense metrics: direct expenses, indirect expenses, overhead costs, operational expenses
+
+The goal is to provide precise answers to metric questions without requiring users to explicitly request a report first.
+
+IMPORTANT: Pay close attention to "b/f" or "brought forward" values. These are special financial terms that indicate beginning balances carried forward from previous periods.
+`;} from "../serviceConfigs/VertexAIService.js";
+import { openaiService } from "../serviceConfigs/OpenAIService.js";
+import {
+  VECTOR_SEARCH_TOOL,
+  RATIO_ANALYSIS_REPORT_TOOL,
+  PROFIT_LOSS_REPORT_TOOL,
+  CASH_FLOW_STATEMENT_REPORT_TOOL,
+  CASH_FLOW_PROJECTION_REPORT_TOOL,
+  EXPENSE_ANALYSIS_REPORT_TOOL,
+  EXTRACT_METRIC_TOOL
+} from "../agentTools/toolsDefinition.js";
+import { toolSelector } from "../agentTools/toolCalls.js";
+import financeChatRepository from "../repository/financeChatRepository.js";
+import { extractDateRangeFromMessage } from "../utils/dateExtractor.js";
+
+const SYSTEM_PROMPT = `You are a helpful financial analytics assistant for Magic Paints.
+You can answer questions, generate financial reports, and provide insights.
+If a user asks for a report, use the appropriate tool to generate it and provide a download link.
+If the user asks a general finance question, answer conversationally.
+Always infer the most likely date range if the user provides a partial date (e.g., "June 2023" means from June 1, 2023 to June 30, 2023; "2023" means the full year).
+Never ask the user to clarify the date range if it can be reasonably inferred.
+Always extract full date ranges explicitly. 
+If user writes a single day like “August 25”, always treat it as "from 2023-08-25 to 2023-08-25".
+Never confuse August with April. Match exact month names or abbreviations (e.g., Aug = August).
+`;
+
+const TOOLS = [
+  EXTRACT_METRIC_TOOL, // Put metric extraction first to prioritize it
+  VECTOR_SEARCH_TOOL,
+  RATIO_ANALYSIS_REPORT_TOOL,
+  PROFIT_LOSS_REPORT_TOOL,
+  CASH_FLOW_STATEMENT_REPORT_TOOL,
+  CASH_FLOW_PROJECTION_REPORT_TOOL,
+  EXPENSE_ANALYSIS_REPORT_TOOL
+];
+
+class FinanceBotService {
+  async handleChat(message, username) {
+    // 1. Get chat history for context
+    const history = await financeChatRepository.getHistory(username);
+
+    // 2. Save user message
+    await financeChatRepository.saveConversation(username, "user", message);
+    let userMessage = message; // original user message
+    try{
+    const dateRange = extractDateRangeFromMessage(userMessage);
+    if (dateRange) {
+      // Option 1: Append to message for LLM context
+      userMessage += ` [Parsed Date Range: ${dateRange.from} to ${dateRange.to}]`;
+    }
+    // 3. Prepare conversation for LLM
+    const conversation = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...history,
+      { role: "user", content: userMessage }
+    ];    // 4. Call Vertex AI with tools enabled
+    let response;
+    try {
+      console.log("Using Vertex AI for financial agent");
+      response = await vertexAIService.chatCompletions({
+        model: "gemini-1.5-pro-latest",
+        messages: conversation,
+        tools: TOOLS,
+        tool_choice: "auto",
+        temperature: 0.2
+      });
+    } catch (vertexError) {
+      console.error("Vertex AI error:", vertexError);
+      console.log("Falling back to OpenAI (if quota allows)");
+      
+      // Fallback to OpenAI if Vertex AI fails
+      response = await openaiService.chatCompletions({
+        model: "gpt-4o",
+        messages: conversation,
+        tools: TOOLS,
+        tool_choice: "auto", 
+        temperature: 0.3
+      });
+    }
+
+    const assistantMsg = response.choices?.[0]?.message;
+    let reply = assistantMsg?.content || "";
+    let downloadUrl;
+
+    // 5. If LLM wants to call a tool (function), do it!
+    if (assistantMsg?.tool_calls?.length) {
+      for (const toolCall of assistantMsg.tool_calls) {
+        const toolName = toolCall.function.name;
+        const params = JSON.parse(toolCall.function.arguments);
+        const toolResult = await toolSelector(toolName, params);
+
+        if (toolResult?.downloadUrl) {
+          downloadUrl = toolResult.downloadUrl;
+          reply += `Access your report using the link provided below.`;
+        } else if (typeof toolResult === "string") {
+          reply += `\n\n${toolResult}`;
+        }
+      }
+    }    // 6. Save assistant response with downloadUrl if available
+    await financeChatRepository.saveConversation(username, "assistant", reply, false, downloadUrl);
+
+    return {
+      reply: reply || "I'm sorry, I couldn't process your request.",
+      downloadUrl
+    };
+     } catch (error) {
+    // NEW ERROR HANDLING: Save the error response to MongoDB
+    console.error("FinanceBot error:", error);
+    const errorMessage = "I encountered an issue processing your request. Please try again.";
+    
+    // Save the error message to MongoDB
+    try {
+      await financeChatRepository.saveConversation(username, "assistant", errorMessage);
+    } catch (saveError) {
+      console.error("Error saving error message to MongoDB:", saveError);
+    }
+    
+    return {
+      reply: errorMessage,
+      error: true
+    };
+  }
+ }
+}
+
+
+export default new FinanceBotService();

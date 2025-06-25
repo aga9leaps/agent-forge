@@ -1,25 +1,27 @@
 import { vectorSearchTool } from "./vectorSearchTool.js";
-import { init as ratioAnalysisReportToolInit } from "./ratioAnalysisReportTool.js";
-import { init as cashFlowStatementReportToolInit } from "./cashFlowStatementReportTool.js";
-import { init as cashFlowProjectionReportToolInit } from "./cashFlowProjectionReportTool.js";
-import { init as expenseAnalysisReportToolInit } from "./expenseAnalysisReportTool.js";
-const expenseAnalysisTool = expenseAnalysisReportToolInit();
-const cashFlowProjectionTool = cashFlowProjectionReportToolInit();
-const cashFlowStatementTool = cashFlowStatementReportToolInit();
-const ratioAnalysisTool = ratioAnalysisReportToolInit();
+import { ratioAnalysisReportTool } from "./ratioAnalysisReportTool.js";
+import { cashFlowStatementReportTool } from "./cashFlowStatementReportTool.js";
+import { cashFlowProjectionReportTool } from "./cashFlowProjectionReportTool.js";
+import { expenseAnalysisReportTool } from "./expenseAnalysisReportTool.js";
+import { profitLossReportTool } from "./profitLossReportTool.js";
+import { extractMetricTool } from "./extractMetricTool.js";
 
 export async function toolSelector(toolName, params) {
   switch (toolName) {
     case "vectorSearch":
       return await vectorSearchTool(params);
     case "ratioAnalysis":
-      return await ratioAnalysisTool.execute(params);
+      return await ratioAnalysisReportTool(params);
+    case "profitLossReport":
+      return await profitLossReportTool(params);  
     case "cashFlowStatementReport":
-      return await cashFlowStatementTool.execute(params);
+      return await cashFlowStatementReportTool(params);
     case "cashFlowProjectionReport":
-      return await cashFlowProjectionTool.execute(params);
+      return await cashFlowProjectionReportTool(params);
     case "expenseAnalysisReport":
-      return await expenseAnalysisTool.execute(params);
+      return await expenseAnalysisReportTool(params);
+    case "extractMetric":
+      return await extractMetricTool(params);
     default:
       console.log(`Tool ${toolName} is not implemented`);
       break;

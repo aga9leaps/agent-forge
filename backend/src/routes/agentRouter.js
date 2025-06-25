@@ -2,6 +2,7 @@ import express from "express";
 import ChatController from "../controllers/chatController.js";
 import CustomerInteractionController from "../controllers/customerInteractionController.js";
 import AuthController from "../controllers/authController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import financeBotController from "../controllers/financeBotController.js";
 import {
   translateText,
@@ -40,16 +41,6 @@ const createAgentRouter = () => {
     await customerInteractionController.sendReminders(req, res);
   });
 
-  // Finance Bot Routes
-  router.get(
-    "/download/:reportName/:fromDate/:toDate",
-    financeBotController.downloadReport
-  );
-  router.get(
-    "/view/:reportName/:fromDate/:toDate",
-    financeBotController.viewReport
-  );
-  router.post("/finance-bot/chat", financeBotController.chat);
   router.post(
     "/finance-bot/speech-to-text",
     (req, res, next) => {
@@ -68,11 +59,17 @@ const createAgentRouter = () => {
   );
 
   // Translation Routes
-  router.post("/translate/text", translateText);
-  router.post("/translate/messages", translateMessages);
-  router.post("/translate/detect-language", detectLanguage);
-  router.get("/translate/supported-languages", getSupportedLanguages);
-
+  // router.post("/translate/text", translateText);
+  // router.post("/translate/messages", translateMessages);
+  // router.post("/translate/detect-language", detectLanguage);
+  // router.get("/translate/supported-languages", getSupportedLanguages);
+  router.get("/download/:reportName/:fromDate/:toDate", financeBotController.downloadReport);
+  router.get("/view/:reportName/:fromDate/:toDate", financeBotController.viewReport);
+  router.get("/view/:reportName/:fromDate/:toDate",financeBotController.viewReport);
+  router.post("/finance-bot/chat",authenticateToken, financeBotController.chat);
+  router.get("/finance-bot/history",authenticateToken, financeBotController.getChatHistory);
+  router.post("/finance-bot/clearChatHistory",authenticateToken, financeBotController.clearChatHistory);
+  router.post("/finance-bot/feedback", authenticateToken, financeBotController.saveFeedback);
   // Whatsapp Webhook Listeners
   router.get("/whatsapp/webhook", async (req, res) => {
     const mode = req.query["hub.mode"];
