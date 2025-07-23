@@ -36,6 +36,16 @@ class BaseMongoRepository {
     const collection = await this.getCollection();
     return collection.deleteOne(filter);
   }
+
+  async create(document) {
+    const collection = await this.getCollection();
+    return collection.insertOne(document);
+  }
+
+  async findOneAndUpdate(filter, update, options = {}) {
+    const collection = await this.getCollection();
+    return collection.findOneAndUpdate(filter, update, options);
+  }
 }
 
 export default BaseMongoRepository;

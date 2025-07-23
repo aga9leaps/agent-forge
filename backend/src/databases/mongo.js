@@ -12,19 +12,27 @@ class MongoDatabase {
       });
 
       await this.client.connect();
+      console.log("MongoDB connection established");
     }
-    return this.client.db();
+    return this.client;
   }
 
   static disconnect() {
     return this.client ? this.client.close() : Promise.resolve();
   }
 
-  static async getDatabase() {
-    if (!this.dbInstance) {
-      this.dbInstance = await this.connect();
+  static async getDatabase(dbName = null) {
+    if (!this.client) {
+      await this.connect();
     }
-    return this.dbInstance;
+    
+    // If a specific database name is provided, return that database
+    if (dbName) {
+      return this.client.db(dbName);
+    }
+    
+    // Otherwise return the default database from the connection string
+    return this.client.db();
   }
 }
 

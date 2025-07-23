@@ -5,28 +5,99 @@ import dotenv from "dotenv";
 dotenv.config({ path: "./configs/.env" });
 
 class WhatsAppService {
-  async sendMessageToWhatsApp(phoneNumber, message) {
+  async sendMessageToWhatsApp(
+    phoneNumber,
+    message,
+    mediaUrl = null,
+    mediaType = null
+  ) {
     const traceId = uuidv4();
     try {
-      const response = await axiosInstance.post(
-        `/messages`,
-        {
+      console.log(`WhatsAppService.sendMessageToWhatsApp - Sending to ${phoneNumber}`);
+      console.log(`Message: ${message.substring(0, 100)}...`);
+      console.log(`Media URL: ${mediaUrl}`);
+      console.log(`Media Type: ${mediaType}`);
+      
+      let messageData;
+
+      if (mediaUrl && mediaType) {
+        // Determine media type for WhatsApp API
+        const whatsappMediaType = this.getWhatsAppMediaType(mediaType);
+        console.log(`WhatsApp media type: ${whatsappMediaType}`);
+
+        if (whatsappMediaType === "image") {
+          messageData = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: phoneNumber,
+            type: "image",
+            image: {
+              link: mediaUrl,
+              caption: message,
+            },
+          };
+        } else if (whatsappMediaType === "document") {
+          messageData = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: phoneNumber,
+            type: "document",
+            document: {
+              link: mediaUrl,
+              caption: message,
+              filename: "attachment.pdf",
+            },
+          };
+        } else {
+          // If media type not supported, send as text with media link
+          messageData = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: phoneNumber,
+            type: "text",
+            text: {
+              preview_url: true,
+              body: `${message}\n\nMedia: ${mediaUrl}`,
+            },
+          };
+        }
+      } else {
+        // Send as text message
+        messageData = {
           messaging_product: "whatsapp",
           recipient_type: "individual",
           to: phoneNumber,
           type: "text",
           text: { preview_url: false, body: message },
-        },
-        {
-          headers: { "X-Trace-Id": traceId },
-        }
+        };
+      }
+
+      console.log(`WhatsApp message data:`, JSON.stringify(messageData, null, 2));
+
+      const response = await axiosInstance.post(`/messages`, messageData, {
+        headers: { "X-Trace-Id": traceId },
+      });
+
+      console.log(
+        `Message sent to ${phoneNumber}: ${message.substring(0, 50)}...${
+          mediaUrl ? " with media" : ""
+        }`
       );
-      console.log(`Message sent to ${phoneNumber}: ${message}`);
+      console.log(`WhatsApp API response:`, response.data);
       return response.data;
     } catch (error) {
       console.error("Error sending message:", error.response?.data || error);
       return null;
     }
+  }
+
+  getWhatsAppMediaType(mimeType) {
+    if (mimeType.startsWith("image/")) {
+      return "image";
+    } else if (mimeType === "application/pdf" || mimeType.includes("document")) {
+      return "document";
+    }
+    return "text";
   }
 
   async sendInitialMessage(phoneNumber, consumerName) {

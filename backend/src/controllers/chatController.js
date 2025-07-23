@@ -1,6 +1,6 @@
 import WhatsAppService from "../services/WhatsAppService.js";
 import PreSalesAgentService from "../services/PreSalesAgentService.js";
-import CronJobService from "../services/cronJobService.js";
+import CronJobService from "../services/CronJobService.js";
 import GoogleSheetService from "../services/GoogleSheetService.js";
 
 class ChatController {

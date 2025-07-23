@@ -13,7 +13,7 @@ export default class ReminderService {
   constructor() {
     this.remiderRepository = new RemiderRepository();
     this.customerInteractionRepository = new CustomerInteractionRepository(
-      process.env.CONSUMER_COLLECTION
+      process.env.CUSTOMER_COLLECTION
     );
     this.reminderRules = [];
     this.intervalsArray = [];
@@ -374,8 +374,9 @@ export default class ReminderService {
             dealer.customer_name
           );
 
+          console.log("Customer Details: ", customerDetails, "   ", dealer.customer_name);
         if (!customerDetails) {
-          console.log("No cutsomer details found for: ", dealer.customer_name);
+          // console.log("No cutsomer details found for: ", dealer.customer_name);
           continue;
         }
 

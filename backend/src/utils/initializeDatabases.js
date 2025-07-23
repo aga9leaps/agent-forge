@@ -11,8 +11,9 @@ async function initializeDatabases(SQL_DB_NAME) {
     throw new Error("Failed to create SQL pool: " + err.message);
   }
 
+  let mongoClient;
   try {
-    await MongoDatabase.connect();
+    mongoClient = await MongoDatabase.connect();
     console.log("Connected to MongoDB successfully.");
   } catch (err) {
     throw new Error("Failed to connect to MongoDB: " + err.message);
@@ -22,8 +23,11 @@ async function initializeDatabases(SQL_DB_NAME) {
     await MilvusDatabase.createClient();
     console.log("Connected to Milvus successfully.");
   } catch (err) {
-    throw new Error("Failed to connect to MongoDB: " + err.message);
+    console.error("Failed to connect to Milvus: " + err.message);
+    // Continue without Milvus as it may not be critical
   }
+  
+  return mongoClient; // Return the MongoDB client for use in the app
 }
 
 export default initializeDatabases;

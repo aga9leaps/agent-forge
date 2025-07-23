@@ -155,9 +155,9 @@ const reminderPhases = {
   "Phase 2": {
     multiplier: 0.75,
     dealer_order_message:
-      "Checking in on how our products are performing for you. Many customers typically consider reordering around this time.",
+     "We hope you’re finding great value in our products!\n\nJust reaching out to see how everything is working for you. Many customers choose to reorder around this time—feel free to reach out if you'd like any assistance.",
     dealer_payment_message:
-      "Friendly reminder: Your payment will be due soon. Let us know if you have any questions.",
+      "Friendly reminder: Your payment is due soon.\n\nWe appreciate your business and are here to help if you have any questions or need assistance.",
     sales_order_action:
       "Gentle awareness reminder. Begin transitioning to order consideration.",
     sales_payment_action:

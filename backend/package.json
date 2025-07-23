@@ -4,13 +4,17 @@
   "main": "App.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node App.js",
+    "dev": "nodemon App.js",
+    "install-deps": "npm install @google-cloud/storage && npm install"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "@google-cloud/speech": "^7.0.1",
+    "@google-cloud/storage": "^7.16.0",
     "@google-cloud/translate": "^8.5.0",
     "@google-cloud/vertexai": "^1.9.3",
     "@zilliz/milvus2-sdk-node": "^2.5.7",
@@ -32,6 +36,7 @@
     "mongoose": "^8.16.0",
     "multer": "^2.0.1",
     "mysql2": "^3.14.0",
+    "node-cron": "^4.1.1",
     "node-windows": "^1.0.0-beta.8",
     "nodemailer": "^6.10.0",
     "openai": "^4.91.1",
