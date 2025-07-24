@@ -1,4 +1,4 @@
-import SalesAgentService from '../services/SalesAgentService.js';
+import SalesAgentService from '../services/salesAgentService.js';
 
 export default class SalesAgentController {
   constructor() {
