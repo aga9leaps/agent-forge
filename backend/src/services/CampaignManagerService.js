@@ -9,7 +9,6 @@ import RemiderRepository from "../repository/reminderRepository.js";
 import { reminderPhases } from "../utils/constants.js";
 
 dotenv.config({ path: "./configs/.env" });
-
 export default class CampaignManagerService {
   constructor() {
     this.mpTasksRepository = new MPTasksRepository(process.env.MP_TASKS_COLLECTION || "mp_tasks");
@@ -706,7 +705,7 @@ export default class CampaignManagerService {
             sentTo.push({
               customer: customer.Particulars,
               phone: phoneNumber,
-              messageId: response.response?.messages[0]?.id
+              messageId: response.response?.messages?.[0]?.id || response.messages?.[0]?.id
             });
           } else {
             failedCount++;
@@ -781,5 +780,99 @@ export default class CampaignManagerService {
     }
 
     return template;
+  }
+
+  // Get reminder status and statistics
+  async getReminderStatus() {
+    try {
+      const ReminderService = (await import("./ReminderService.js")).default;
+      const reminderService = new ReminderService();
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get today's reminder statistics
+      const orderStats = await this.getTodayReminderStats('order', today, tomorrow);
+      const paymentStats = await this.getTodayReminderStats('payment', today, tomorrow);
+
+      return {
+        success: true,
+        data: {
+          order: orderStats,
+          payment: paymentStats,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      console.error("Error getting reminder status:", error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Get today's reminder statistics for a specific type
+  async getTodayReminderStats(reminderType, today, tomorrow) {
+    try {
+      const ReminderService = (await import("./ReminderService.js")).default;
+      const reminderService = new ReminderService();
+      
+      // Get all reminders sent today
+      const sentReminders = await reminderService.remiderRepository.executeQuery(`
+        SELECT customer_name, whatsapp_message_id, notes 
+        FROM dealer_reminders 
+        WHERE reminder_type = ? 
+        AND status = 'Sent' 
+        AND DATE(updated_at) = DATE(?)
+      `, [reminderType, today]);
+
+      // Get pending reminders for today
+      const pendingReminders = await reminderService.remiderRepository.executeQuery(`
+        SELECT customer_name 
+        FROM dealer_reminders 
+        WHERE reminder_type = ? 
+        AND status = 'Pending' 
+        AND DATE(reminder_date) = DATE(?)
+      `, [reminderType, today]);
+
+      // Get failed reminders for today
+      const failedReminders = await reminderService.remiderRepository.executeQuery(`
+        SELECT customer_name, notes 
+        FROM dealer_reminders 
+        WHERE reminder_type = ? 
+        AND status = 'Failed' 
+        AND DATE(updated_at) = DATE(?)
+      `, [reminderType, today]);
+
+      return {
+        status: sentReminders.length > 0 ? 'completed' : (pendingReminders.length > 0 ? 'pending' : 'no_reminders'),
+        totalSent: sentReminders.length,
+        totalPending: pendingReminders.length,
+        totalFailed: failedReminders.length,
+        lastRunTime: sentReminders.length > 0 ? '11:00 AM' : null,
+        sentTo: sentReminders.map(r => r.customer_name),
+        pendingFor: pendingReminders.map(r => r.customer_name),
+        failedFor: failedReminders.map(r => ({ 
+          customer: r.customer_name, 
+          reason: r.notes || 'Unknown error' 
+        }))
+      };
+    } catch (error) {
+      console.error(`Error getting ${reminderType} reminder stats:`, error);
+      return {
+        status: 'error',
+        totalSent: 0,
+        totalPending: 0,
+        totalFailed: 0,
+        lastRunTime: null,
+        sentTo: [],
+        pendingFor: [],
+        failedFor: [],
+        error: error.message
+      };
+    }
   }
 }

@@ -25,6 +25,32 @@ export default class CampaignScheduler {
       timezone: "Asia/Kolkata"
     });
 
+    // Schedule order reminders to run daily at 9:05 PM IST
+    cron.schedule('0 11 * * *', async () => {
+      console.log("Running daily order reminders job...");
+      try {
+        await this.campaignManagerService.sendReminders('order');
+        console.log("Order reminders job completed successfully");
+      } catch (error) {
+        console.error("Error in order reminders job:", error);
+      }
+    }, {
+      timezone: "Asia/Kolkata"
+    });
+
+    // Schedule payment reminders to run daily at 11:00 AM IST
+    cron.schedule('0 11 * * *', async () => {
+      console.log("Running daily payment reminders job...");
+      try {
+        await this.campaignManagerService.sendReminders('payment');
+        console.log("Payment reminders job completed successfully");
+      } catch (error) {
+        console.error("Error in payment reminders job:", error);
+      }
+    }, {
+      timezone: "Asia/Kolkata"
+    });
+
     console.log("Campaign Scheduler initialized successfully");
   }
 }

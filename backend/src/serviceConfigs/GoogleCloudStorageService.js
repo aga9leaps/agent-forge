@@ -5,40 +5,61 @@ import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
 import https from "https";
 
-dotenv.config({ path: "./configs/.env" });
-
-// Ensure NODE_TLS_REJECT_UNAUTHORIZED is set to '0' for certificate validation issues
-// if (process.env.NODE_TLS_REJECT_UNAUTHORIZED !== "0") {
-//   console.warn(
-//     "Setting NODE_TLS_REJECT_UNAUTHORIZED=0 for Google Cloud Storage"
-//   );
-//   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-// }
+dotenv.config({ path: "../../configs/.env" });
 
 class GoogleCloudStorageService {
   #storage = null;
   #bucketName = null;
   #serviceAccountPath = null;
+  #credentials = null;
 
   constructor() {
     this.#serviceAccountPath =
-      process.env.GOOGLE_APPLICATION_CREDENTIALS || "./configs/setUp.json";
+      process.env.GOOGLE_APPLICATION_CREDENTIALS;
     this.#bucketName = process.env.GCP_BUCKET_NAME || "invoice-api-bucket";
+    
+    // Build credentials object from environment variables
+    this.#credentials = {
+      type: process.env.GCS_TYPE || "service_account",
+      project_id: process.env.GCS_PROJECT_ID,
+      private_key_id: process.env.GCS_PRIVATE_KEY_ID,
+      private_key: process.env.GCS_PRIVATE_KEY ? process.env.GCS_PRIVATE_KEY.replace(/\\n/g, '\n') : null,
+      client_email: process.env.GCS_CLIENT_EMAIL,
+      client_id: process.env.GCS_CLIENT_ID,
+      auth_uri: process.env.GCS_AUTH_URI,
+      token_uri: process.env.GCS_TOKEN_URI,
+      auth_provider_x509_cert_url: process.env.GCS_AUTH_PROVIDER_X509_CERT_URL,
+      client_x509_cert_url: process.env.GCS_CLIENT_X509_CERT_URL,
+      universe_domain: process.env.GCS_UNIVERSE_DOMAIN
+    };
   }
 
   async getStorageClient() {
     if (!this.#storage) {
       try {
-        // Initialize storage with the service account key file and bypass certificate validation
-        this.#storage = new Storage({
-          keyFilename: this.#serviceAccountPath,
+        let storageConfig = {
           // Add HTTP agent with relaxed SSL validation
           httpOptions: {
             agent: new https.Agent({
               rejectUnauthorized: false,
             }),
           },
-        });
+        };
+
+        // Use credentials object if available, otherwise fall back to keyFilename
+        if (this.#credentials && this.#credentials.project_id && this.#credentials.private_key) {
+          storageConfig.credentials = this.#credentials;
+          storageConfig.projectId = this.#credentials.project_id;
+          console.log("Using GCS credentials from environment variables");
+        } else if (this.#serviceAccountPath) {
+          storageConfig.keyFilename = this.#serviceAccountPath;
+          console.log("Using GCS credentials from key file:", this.#serviceAccountPath);
+        } else {
+          throw new Error("Neither GCS credentials nor GOOGLE_APPLICATION_CREDENTIALS are properly configured");
+        }
+
+        // Initialize storage with the configuration
+        this.#storage = new Storage(storageConfig);
 
         // Check if the bucket exists, if not create it
         await this.ensureBucketExists();

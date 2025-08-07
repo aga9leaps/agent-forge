@@ -84,10 +84,20 @@ class WhatsAppService {
         }`
       );
       console.log(`WhatsApp API response:`, response.data);
-      return response.data;
+      
+      // Return standardized response format
+      return {
+        success: true,
+        response: response.data,
+        messages: response.data.messages || []
+      };
     } catch (error) {
       console.error("Error sending message:", error.response?.data || error);
-      return null;
+      return {
+        success: false,
+        error: error.response?.data?.error?.message || error.message || "Failed to send message",
+        response: null
+      };
     }
   }
 

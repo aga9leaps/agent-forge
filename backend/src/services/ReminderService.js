@@ -391,12 +391,16 @@ export default class ReminderService {
           const rule = this.reminderRules.find(
             (r) => r.rule_id === reminder.rule_id
           );
-          if (!rule) continue;
+          if (!rule) {
+            console.log("No rule found for reminder ID:", reminder.reminder_id);
+            continue;
+          }
 
           const messageTemplate =
             typeOfReminder === "order"
               ? "dealer_order_message_template"
               : "dealer_payment_message_template";
+          
           // Format the message with dealer-specific information
           const formattedMessage = this.formatReminderMessage(
             rule[messageTemplate],
@@ -409,6 +413,9 @@ export default class ReminderService {
             /\D/g,
             ""
           );
+          
+          console.log(`Sending ${typeOfReminder} reminder to ${dealer.customer_name} at ${phoneNumber}`);
+          
           // Send the reminder based on the communication channel
           const response = await this.sendReminderByChannel(
             rule.communication_channel,
@@ -419,16 +426,24 @@ export default class ReminderService {
 
           // Update reminder status
           if (response?.success) {
-            const whatsapp_message_id = response.response?.messages[0].id;
+            const whatsapp_message_id = response.response?.messages?.[0]?.id || 
+                                       response.messages?.[0]?.id || 
+                                       null;
+            
+            console.log(`✅ Successfully sent reminder to ${dealer.customer_name}, message ID: ${whatsapp_message_id}`);
 
-            await this.remiderRepository.updateReminderStatus(
+            const updateResult = await this.remiderRepository.updateReminderStatus(
               reminder.reminder_id,
               whatsapp_message_id,
               "Sent",
-              `Sent via ${
-                rule.communication_channel
-              } on ${new Date().toISOString()}`
+              `Sent via ${rule.communication_channel} on ${new Date().toISOString()}`
             );
+
+            if (updateResult) {
+              console.log(`✅ Updated reminder status to 'Sent' for reminder ID: ${reminder.reminder_id}`);
+            } else {
+              console.error(`❌ Failed to update reminder status for reminder ID: ${reminder.reminder_id}`);
+            }
 
             // Update the dealer reminder attempts
             dealer.reminder_attempts = (dealer.reminder_attempts || 0) + 1;
@@ -438,6 +453,16 @@ export default class ReminderService {
               dealer.customer_name,
               dealer.reminder_attempts,
               dealer.last_reminder_sent
+            );
+          } else {
+            console.error(`❌ Failed to send reminder to ${dealer.customer_name}:`, response?.error || 'Unknown error');
+            
+            // Update status to 'Failed'
+            await this.remiderRepository.updateReminderStatus(
+              reminder.reminder_id,
+              null,
+              "Failed",
+              `Failed to send via ${rule.communication_channel} on ${new Date().toISOString()}. Error: ${response?.error || 'Unknown error'}`
             );
           }
         }
@@ -485,13 +510,21 @@ export default class ReminderService {
       // }
 
       if (channel.includes("SMS") || channel.includes("WhatsApp")) {
-        console.log("Sending WhatsApp message fro: ", dealer.customer_name);
+        console.log("Sending WhatsApp message for: ", dealer.customer_name);
 
         if (phoneNumber) {
-          return await WhatsAppService.sendMessageToWhatsApp(
+          const response = await WhatsAppService.sendMessageToWhatsApp(
             phoneNumber,
             message
           );
+          console.log("WhatsApp response for", dealer.customer_name, ":", response);
+          return response;
+        } else {
+          console.log("No phone number available for:", dealer.customer_name);
+          return {
+            success: false,
+            error: "No phone number available"
+          };
         }
       }
 
@@ -502,12 +535,18 @@ export default class ReminderService {
       //     customerDetails.phoneNumber
       //   );
       // }
+      
+      console.log("Unsupported communication channel:", channel);
       return {
         success: false,
+        error: "Unsupported communication channel"
       };
     } catch (error) {
       console.error("Error sending reminder:", error);
-      return false;
+      return {
+        success: false,
+        error: error.message || "Failed to send reminder"
+      };
     }
   }
 }

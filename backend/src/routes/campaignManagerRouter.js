@@ -56,6 +56,7 @@ export default function createCampaignManagerRouter() {
   // Reminder endpoints
   router.post("/send-reminders", campaignManagerController.sendReminders.bind(campaignManagerController));
   router.post("/campaigns/:taskId/execute-reminder", campaignManagerController.executeReminderCampaign.bind(campaignManagerController));
+  router.get("/reminder-status", campaignManagerController.getReminderStatus.bind(campaignManagerController));
 
   return router;
 }

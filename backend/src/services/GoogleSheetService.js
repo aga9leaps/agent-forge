@@ -1,12 +1,8 @@
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
-import credentials from "../../configs/sheet-servoce-account-data.json" with { type : "json" };
 import ConsumerRepository from '../repository/consumerRepository.js';
-
-
-dotenv.config({ path: "../.env" });
-
+dotenv.config({ path: "../../configs/.env" });
 export default class GoogleSheetService {
   constructor() {
     this.consumerRepository = new ConsumerRepository(process.env.CONSUMER_COLLECTION);
@@ -17,8 +13,8 @@ export default class GoogleSheetService {
   async init() {
     try {
       const client = new JWT({
-        email: credentials.client_email,
-        key: credentials.private_key,
+        email: process.env.SHEET_CLIENT_EMAIL,
+        key: process.env.SHEET_PRIVATE_KEY,
         scopes: ["https://www.googleapis.com/auth/spreadsheets"],
       });
 

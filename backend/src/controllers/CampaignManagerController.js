@@ -228,4 +228,15 @@ export default class CampaignManagerController {
       return res.status(500).json({ error: "Failed to execute reminder campaign" });
     }
   }
+
+  async getReminderStatus(req, res) {
+    try {
+      const result = await this.campaignManagerService.getReminderStatus();
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Error getting reminder status:", error);
+      return res.status(500).json({ error: "Failed to get reminder status" });
+    }
+  }
 }

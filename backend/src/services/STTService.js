@@ -1,6 +1,7 @@
-import authConfigs from "../../configs/setUp.json" with { type: "json" };
 import { vertexAIService } from "../serviceConfigs/VertexAIService.js";
+import dotenv from "dotenv";
 
+dotenv.config({ path: "../../configs/.env" });
 class STTService {
   constructor() {
     this.location = "us-central1";
@@ -11,7 +12,7 @@ class STTService {
     try {
       const client = await vertexAIService.getSpeechClient();
       const recognizerId = 'am-fixed-multilingual-recognizer';
-      const parent = `projects/${authConfigs.project_id}/locations/${this.location}`;
+      const parent = `projects/${process.env.GCS_PROJECT_ID}/locations/${this.location}`;
       const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN'];
 
       const request = {
@@ -79,8 +80,8 @@ class STTService {
   async transcribeAudioV2(audioBuffer, recognitionConfig = {}) {
     try {
         const client = await vertexAIService.getSpeechClient();
-        const recognizerName = `projects/${authConfigs.project_id}/locations/${this.location}/recognizers/am-fixed-multilingual-recognizer`;
-        const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN']; 
+        const recognizerName = `projects/${process.env.GCS_PROJECT_ID}/locations/${this.location}/recognizers/am-fixed-multilingual-recognizer`;
+        const languageCodes = ['en-US', 'kn-IN', 'hi-IN', 'ta-IN', 'te-IN', 'ml-IN'];
 
         const request = {
             recognizer: recognizerName,

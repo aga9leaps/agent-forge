@@ -1,14 +1,17 @@
 import { v2 as translate } from '@google-cloud/translate';
-import authConfigs from "../../configs/setUp.json" with { type: "json" };
-
+import dotenv from "dotenv";
+dotenv.config({ path: "../../configs/.env" });
 class TranslationService {
   #translateClient = null;
 
   async getTranslateClient() {
     if (!this.#translateClient) {
       this.#translateClient = new translate.Translate({
-        credentials: authConfigs,
-        projectId: authConfigs.project_id,
+        credentials: {
+          client_email: process.env.GCS_CLIENT_EMAIL,
+          private_key: process.env.GCS_PRIVATE_KEY.replace(/\\n/g, "\n"),
+        },
+        projectId: process.env.GCS_PROJECT_ID,
       });
     }
     return this.#translateClient;

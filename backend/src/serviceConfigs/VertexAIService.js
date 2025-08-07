@@ -1,7 +1,7 @@
 import { VertexAI } from "@google-cloud/vertexai";
 import { SpeechClient } from "@google-cloud/speech";
-import authConfigs from "../../configs/setUp.json" with { type: "json" };
-
+import dotenv from "dotenv";
+dotenv.config({ path: "../../configs/.env" });
 class VertexAIService {
   #vertexAI = null;
   #speechClient = null;
@@ -9,12 +9,11 @@ class VertexAIService {
   async getVertexAIClient(model) {
     if (!this.#vertexAI) {
       this.#vertexAI = new VertexAI({
-        project: authConfigs.project_id,
+        project: process.env.GCS_PROJECT_ID,
         location: 'us-central1',
         googleAuthOptions: {
-          credentials: authConfigs,
           scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-          projectId: authConfigs.project_id,
+          projectId: process.env.GCS_PROJECT_ID,
         },
       });
     }
@@ -27,8 +26,7 @@ class VertexAIService {
   async getSpeechClient() {
     if (!this.#speechClient) {
       this.#speechClient = new SpeechClient({
-        credentials: authConfigs,
-        projectId: authConfigs.project_id,
+        projectId: process.env.GCS_PROJECT_ID,
       });
     }
     return this.#speechClient;
