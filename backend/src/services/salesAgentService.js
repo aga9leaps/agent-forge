@@ -108,11 +108,11 @@ export default class SalesAgentService {
       const targetAudience = taskData.targetAudience || taskData.targetConsumerGroup;
       console.log("Target audience/consumer group:", targetAudience);
       
-      // Upload media if provided
-      let mediaUrl = null;
-      let mediaType = null;
+      // Handle media - use existing mediaUrl if provided, or upload file if provided
+      let mediaUrl = taskData.mediaUrl || null;
+      let mediaType = taskData.mediaType || null;
       
-      if (taskData.mediaFile) {
+      if (taskData.mediaFile && !mediaUrl) {
         console.log("Media file detected:", {
           originalname: taskData.mediaFile.originalname,
           mimetype: taskData.mediaFile.mimetype,
@@ -125,8 +125,13 @@ export default class SalesAgentService {
           mediaUrl,
           mediaType
         });
+      } else if (mediaUrl) {
+        console.log("Using pre-uploaded media:", {
+          mediaUrl,
+          mediaType
+        });
       } else {
-        console.log("No media file provided in taskData");
+        console.log("No media file or URL provided in taskData");
       }
 
       // Get target audience based on consumer type
@@ -449,11 +454,16 @@ export default class SalesAgentService {
         taskId,
         hasMediaFile: !!updateData.mediaFile,
         mediaFileName: updateData.mediaFile?.originalname,
-        mediaMimeType: updateData.mediaFile?.mimetype
+        mediaMimeType: updateData.mediaFile?.mimetype,
+        hasMediaUrl: !!updateData.mediaUrl
       });
       
-      // Upload new media if provided
-      if (updateData.mediaFile) {
+      // Handle pre-uploaded media URL or upload new media if provided
+      if (updateData.mediaUrl && !updateData.mediaFile) {
+        // Use pre-uploaded media
+        console.log("Using pre-uploaded media for update:", updateData.mediaUrl, updateData.mediaType);
+      } else if (updateData.mediaFile) {
+        // Upload new media if provided
         console.log("Uploading new media for task update...");
         const fileName = `sales_media_${Date.now()}_${updateData.mediaFile.originalname}`;
         updateData.mediaUrl = await this.uploadMedia(updateData.mediaFile.buffer, fileName, updateData.mediaFile.mimetype);

@@ -83,11 +83,18 @@ export default class CampaignManagerService {
 
   async createCampaign(campaignData) {
     try {
-      // Upload media if provided
-      let mediaUrl = null;
-      let mediaType = null;
+      console.log("Creating campaign with data:", {
+        hasMediaFile: !!campaignData.mediaFile,
+        mediaUrl: campaignData.mediaUrl,
+        mediaType: campaignData.mediaType
+      });
+
+      // Upload media if provided, or use existing mediaUrl
+      let mediaUrl = campaignData.mediaUrl || null;
+      let mediaType = campaignData.mediaType || null;
       
-      if (campaignData.mediaFile) {
+      if (campaignData.mediaFile && !mediaUrl) {
+        console.log("Uploading media file during campaign creation");
         mediaUrl = await this.uploadMedia(
           campaignData.mediaFile.buffer,
           campaignData.mediaFile.originalname,
@@ -95,6 +102,8 @@ export default class CampaignManagerService {
         );
         mediaType = campaignData.mediaFile.mimetype;
       }
+
+      console.log("Final media details for campaign:", { mediaUrl, mediaType });
 
       // For scheduled reminder triggers, we don't need target audience processing
       let targetNumbers = [];
@@ -383,8 +392,13 @@ export default class CampaignManagerService {
 
   async updateCampaign(taskId, updateData) {
     try {
-      // Upload new media if provided
-      if (updateData.mediaFile) {
+      // Handle pre-uploaded media URL or upload new media if provided
+      if (updateData.mediaUrl && !updateData.mediaFile) {
+        // Use pre-uploaded media
+        console.log("Using pre-uploaded media for update:", updateData.mediaUrl, updateData.mediaType);
+      } else if (updateData.mediaFile) {
+        // Upload new media if provided
+        console.log("Uploading new media during campaign update");
         const mediaUrl = await this.uploadMedia(
           updateData.mediaFile.buffer,
           updateData.mediaFile.originalname,

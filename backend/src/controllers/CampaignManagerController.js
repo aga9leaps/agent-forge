@@ -28,10 +28,25 @@ export default class CampaignManagerController {
 
   async createCampaign(req, res) {
     try {
+      console.log("Campaign creation request received:");
+      console.log("Body:", req.body);
+      console.log("File:", req.file ? { 
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size 
+      } : "No file");
+
       const campaignData = {
         ...req.body,
         mediaFile: req.file // If media file is uploaded
       };
+
+      // Handle pre-uploaded media URL
+      if (req.body.mediaUrl && !campaignData.mediaFile) {
+        console.log("Using pre-uploaded media URL:", req.body.mediaUrl, req.body.mediaType);
+        campaignData.mediaUrl = req.body.mediaUrl;
+        campaignData.mediaType = req.body.mediaType;
+      }
 
       const result = await this.campaignManagerService.createCampaign(campaignData);
 
@@ -67,6 +82,13 @@ export default class CampaignManagerController {
         ...req.body,
         mediaFile: req.file // If media file is uploaded
       };
+
+      // Handle pre-uploaded media URL
+      if (req.body.mediaUrl && !updateData.mediaFile) {
+        console.log("Using pre-uploaded media URL for update:", req.body.mediaUrl, req.body.mediaType);
+        updateData.mediaUrl = req.body.mediaUrl;
+        updateData.mediaType = req.body.mediaType;
+      }
 
       const result = await this.campaignManagerService.updateCampaign(taskId, updateData);
 

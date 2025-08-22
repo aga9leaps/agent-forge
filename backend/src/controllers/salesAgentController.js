@@ -42,6 +42,13 @@ export default class SalesAgentController {
         mediaFile: req.file
       };
 
+      // Handle pre-uploaded media URL
+      if (req.body.mediaUrl && !taskData.mediaFile) {
+        console.log("Using pre-uploaded media URL for sales task:", req.body.mediaUrl, req.body.mediaType);
+        taskData.mediaUrl = req.body.mediaUrl;
+        taskData.mediaType = req.body.mediaType;
+      }
+
       console.log("SalesAgentController.createSalesTask - Task data:", taskData);
 
       const result = await this.salesAgentService.createSalesTask(taskData);
@@ -99,6 +106,13 @@ export default class SalesAgentController {
         ...req.body,
         mediaFile: req.file
       };
+
+      // Handle pre-uploaded media URL
+      if (req.body.mediaUrl && !updateData.mediaFile) {
+        console.log("Using pre-uploaded media URL for sales task update:", req.body.mediaUrl, req.body.mediaType);
+        updateData.mediaUrl = req.body.mediaUrl;
+        updateData.mediaType = req.body.mediaType;
+      }
 
       const result = await this.salesAgentService.updateSalesTask(taskId, updateData);
       
@@ -235,8 +249,14 @@ export default class SalesAgentController {
       res.json({
         success: true,
         message: 'Media uploaded successfully',
-        mediaUrl,
-        mediaType: req.file.mimetype.startsWith('image/') ? 'image' : 'document'
+        url: mediaUrl,
+        mediaUrl: mediaUrl,
+        mediaType: req.file.mimetype,
+        data: {
+          mediaUrl: mediaUrl,
+          mediaType: req.file.mimetype,
+          fileName: req.file.originalname
+        }
       });
     } catch (error) {
       console.error('Error uploading media:', error);
