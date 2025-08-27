@@ -1,0 +1,159 @@
+name: simple-node-tests
+description: Simple test workflows for each implemented node type
+
+inputs:
+  test_mode:
+    type: string
+    default: "basic"
+    description: Test mode to run
+
+outputs:
+  test_results: "{{steps.compile_results.output}}"
+
+steps:
+  # DateTime Node Tests
+  - id: test_datetime_now
+    type: datetime
+    config:
+      operation: now
+      format: "YYYY-MM-DD HH:mm:ss"
+      timezone: "UTC"
+
+  - id: test_datetime_add
+    type: datetime
+    config:
+      operation: add
+      date: "2024-01-01 10:00:00"
+      amount: 7
+      unit: days
+      format: "YYYY-MM-DD"
+
+  # HTTP Request Node Test
+  - id: test_http_request
+    type: http
+    config:
+      method: GET
+      url: "https://jsonplaceholder.typicode.com/posts/1"
+      headers:
+        Content-Type: "application/json"
+
+  # Transform Node Test
+  - id: test_transform
+    type: transform
+    config:
+      expression: |
+        return {
+          test: "success",
+          timestamp: steps.test_datetime_now.output.formatted,
+          future_date: steps.test_datetime_add.output.formatted,
+          api_title: steps.test_http_request.output.data?.title || "No title",
+          calculated_value: 10 + 5 * 2
+        }
+
+  # Conditional Node Test
+  - id: test_conditional
+    type: conditional
+    condition: "{{steps.test_transform.output.calculated_value > 15}}"
+    if_true:
+      - id: success_transform
+        type: transform
+        config:
+          expression: |
+            return { condition_result: "Math test passed!" }
+    if_false:
+      - id: failure_transform
+        type: transform
+        config:
+          expression: |
+            return { condition_result: "Math test failed!" }
+
+  # Database Test (Mock - will fail gracefully if no DB)
+  - id: test_database_mock
+    type: database
+    on_error: continue
+    config:
+      operation: mysql.select
+      query: "SELECT 1 as test_value"
+
+  # Email Test (Mock - will fail gracefully if no SMTP)
+  - id: test_email_mock
+    type: email
+    on_error: continue
+    config:
+      provider: smtp
+      to: ["test@example.com"]
+      subject: "Test Email from Workflow"
+      body: "This is a test email sent at {{steps.test_datetime_now.output.formatted}}"
+      bodyType: text
+
+  # Slack Test (Mock - will fail gracefully if no token)
+  - id: test_slack_mock
+    type: slack
+    on_error: continue
+    config:
+      operation: messages.send
+      token: "xoxb-test-token"
+      channel: "#test"
+      text: "Test message from workflow engine"
+
+  # Telegram Test (Mock - will fail gracefully if no token)
+  - id: test_telegram_mock
+    type: telegram
+    on_error: continue
+    config:
+      operation: sendMessage
+      botToken: "test-token"
+      chatId: "test-chat"
+      text: "Test message from workflow engine at {{steps.test_datetime_now.output.formatted}}"
+
+  # Compile test results
+  - id: compile_results
+    type: transform
+    config:
+      expression: |
+        return {
+          datetime_tests: {
+            now: steps.test_datetime_now.output.success !== false,
+            add: steps.test_datetime_add.output.success !== false,
+            current_time: steps.test_datetime_now.output.formatted,
+            future_date: steps.test_datetime_add.output.formatted
+          },
+          http_test: {
+            success: steps.test_http_request.output.success !== false,
+            status_code: steps.test_http_request.output.status,
+            has_data: !!steps.test_http_request.output.data
+          },
+          transform_test: {
+            success: steps.test_transform.output.test === "success",
+            calculated_value: steps.test_transform.output.calculated_value,
+            api_title: steps.test_transform.output.api_title
+          },
+          conditional_test: {
+            executed: !!steps.test_conditional.output,
+            condition_result: steps.test_conditional.output?.results?.[0]?.condition_result || "Not executed"
+          },
+          integration_tests: {
+            database: {
+              attempted: true,
+              success: steps.test_database_mock.output?.success === true,
+              error: steps.test_database_mock.output?.error || null
+            },
+            email: {
+              attempted: true,
+              success: steps.test_email_mock.output?.success === true,
+              error: steps.test_email_mock.output?.error || null
+            },
+            slack: {
+              attempted: true,
+              success: steps.test_slack_mock.output?.success === true,
+              error: steps.test_slack_mock.output?.error || null
+            },
+            telegram: {
+              attempted: true,
+              success: steps.test_telegram_mock.output?.success === true,
+              error: steps.test_telegram_mock.output?.error || null
+            }
+          },
+          overall_status: "All basic node tests completed",
+          test_timestamp: steps.test_datetime_now.output.formatted
+        }

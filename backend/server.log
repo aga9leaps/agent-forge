@@ -1,0 +1,85 @@
+Starting test server with OpenAI Key: Set (hidden)
+Test server running on port 3000
+Available routes:
+GET  /health - Health check
+POST /api/workflows/load - Load workflow
+POST /api/workflows/execute/:name - Execute workflow
+GET  /api/workflows - List workflows
+
+Ready to test workflows!
+Workflow 'simple-node-tests' loaded successfully
+Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
+Starting workflow execution: simple-node-tests [9306f143-f653-4179-aa87-2e1dd1275492]
+Executing step: test_datetime_now
+Workflow 'simple-node-tests' failed [9306f143-f653-4179-aa87-2e1dd1275492]: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Error executing workflow: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
+Starting workflow execution: simple-node-tests [d17575e0-dd3a-4603-bf8a-ebe5c2be836e]
+Executing step: test_datetime_now
+Workflow 'simple-node-tests' failed [d17575e0-dd3a-4603-bf8a-ebe5c2be836e]: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Error executing workflow: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
+Starting workflow execution: simple-node-tests [94716c2b-f01f-49fd-832c-36670585e6e7]
+Executing step: test_datetime_now
+Workflow 'simple-node-tests' failed [94716c2b-f01f-49fd-832c-36670585e6e7]: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Error executing workflow: Error: Unknown step type: datetime
+    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
+    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
+    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
+    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)

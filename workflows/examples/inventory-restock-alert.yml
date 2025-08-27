@@ -1,0 +1,211 @@
+name: inventory-restock-alert
+description: Monitor inventory levels and alert when restocking is needed
+
+inputs:
+  threshold:
+    type: number
+    default: 10
+    description: Minimum inventory level before alert
+
+outputs:
+  low_stock_items: "{{steps.find_low_stock.output}}"
+  alerts_sent: "{{steps.notification_summary.output}}"
+
+steps:
+  - id: find_low_stock
+    type: database
+    config:
+      operation: mysql.select
+      query: |
+        SELECT 
+          p.id,
+          p.name,
+          p.sku,
+          i.quantity,
+          p.price,
+          s.name as supplier_name,
+          s.email as supplier_email
+        FROM products p
+        JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN suppliers s ON p.supplier_id = s.id
+        WHERE i.quantity <= ?
+        ORDER BY i.quantity ASC
+      params: ["{{inputs.threshold}}"]
+
+  - id: check_if_alerts_needed
+    type: transform
+    config:
+      expression: |
+        const lowStockItems = steps.find_low_stock.output.data || [];
+        return {
+          hasLowStock: lowStockItems.length > 0,
+          itemCount: lowStockItems.length,
+          criticalItems: lowStockItems.filter(item => item.quantity === 0),
+          lowItems: lowStockItems.filter(item => item.quantity > 0)
+        }
+
+  - id: update_restock_log
+    type: database
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      operation: mysql.insert
+      collection: restock_alerts
+      data:
+        alert_date: "{{now}}"
+        total_items: "{{steps.check_if_alerts_needed.output.itemCount}}"
+        critical_items: "{{steps.check_if_alerts_needed.output.criticalItems.length}}"
+        status: "active"
+
+  - id: create_restock_sheet
+    type: google_sheets
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      operation: clear
+      spreadsheetId: "{{env.INVENTORY_SPREADSHEET_ID}}"
+      range: "Restock Needed!A:G"
+
+  - id: populate_restock_sheet
+    type: google_sheets
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      operation: append
+      spreadsheetId: "{{env.INVENTORY_SPREADSHEET_ID}}"
+      range: "Restock Needed!A:G"
+      values:
+        - ["Product ID", "Name", "SKU", "Current Stock", "Price", "Supplier", "Status"]
+        {{#each steps.find_low_stock.output.data}}
+        - ["{{id}}", "{{name}}", "{{sku}}", "{{quantity}}", "{{price}}", "{{supplier_name}}", "{{quantity === 0 ? 'OUT OF STOCK' : 'LOW STOCK'}}"]
+        {{/each}}
+
+  - id: discord_alert
+    type: discord
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      operation: messages.send
+      token: "{{env.DISCORD_BOT_TOKEN}}"
+      channelId: "{{env.INVENTORY_CHANNEL_ID}}"
+      embeds:
+        - title: "📦 Inventory Restock Alert"
+          color: "{{steps.check_if_alerts_needed.output.criticalItems.length > 0 ? 16711680 : 16753920}}"
+          description: "Low stock items detected requiring immediate attention"
+          fields:
+            - name: "Total Items"
+              value: "{{steps.check_if_alerts_needed.output.itemCount}}"
+              inline: true
+            - name: "Out of Stock"
+              value: "{{steps.check_if_alerts_needed.output.criticalItems.length}}"
+              inline: true
+            - name: "Low Stock"
+              value: "{{steps.check_if_alerts_needed.output.lowItems.length}}"
+              inline: true
+          footer:
+            text: "Inventory Management System"
+          timestamp: "{{now}}"
+
+  - id: teams_notification
+    type: teams
+    condition: "{{steps.check_if_alerts_needed.output.criticalItems.length > 0}}"
+    config:
+      operation: webhooks.send
+      webhookUrl: "{{env.TEAMS_WEBHOOK_URL}}"
+      title: "🚨 Critical Inventory Alert"
+      themeColor: "#FF0000"
+      sections:
+        - activityTitle: "Out of Stock Items"
+          activitySubtitle: "{{steps.check_if_alerts_needed.output.criticalItems.length}} items are completely out of stock"
+          facts:
+            {{#each steps.check_if_alerts_needed.output.criticalItems}}
+            - name: "{{name}}"
+              value: "SKU: {{sku}} | Supplier: {{supplier_name}}"
+            {{/each}}
+      potentialAction:
+        - "@type": "OpenUri"
+          name: "View Inventory Sheet"
+          targets:
+            - os: "default"
+              uri: "https://docs.google.com/spreadsheets/d/{{env.INVENTORY_SPREADSHEET_ID}}"
+
+  - id: email_suppliers
+    type: transform
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      expression: |
+        const suppliers = {};
+        const items = steps.find_low_stock.output.data || [];
+        
+        items.forEach(item => {
+          if (item.supplier_email) {
+            if (!suppliers[item.supplier_email]) {
+              suppliers[item.supplier_email] = {
+                name: item.supplier_name,
+                email: item.supplier_email,
+                items: []
+              };
+            }
+            suppliers[item.supplier_email].items.push(item);
+          }
+        });
+        
+        return Object.values(suppliers);
+
+  - id: send_supplier_emails
+    type: email
+    condition: "{{steps.check_if_alerts_needed.output.hasLowStock}}"
+    config:
+      provider: smtp
+      to: ["{{#each steps.email_suppliers.output}}{{email}}{{/each}}"]
+      subject: "Urgent: Restock Request for Low Inventory Items"
+      body: |
+        <h2>Restock Request</h2>
+        <p>Dear {{supplier_name}},</p>
+        
+        <p>We need to restock the following items that are running low:</p>
+        
+        <table border="1" style="border-collapse: collapse;">
+          <tr>
+            <th>Product Name</th>
+            <th>SKU</th>
+            <th>Current Stock</th>
+            <th>Status</th>
+          </tr>
+          {{#each items}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{sku}}</td>
+            <td>{{quantity}}</td>
+            <td>{{quantity === 0 ? 'OUT OF STOCK' : 'LOW STOCK'}}</td>
+          </tr>
+          {{/each}}
+        </table>
+        
+        <p>Please prioritize items marked as "OUT OF STOCK" and provide an estimated delivery timeline.</p>
+        
+        <p>Best regards,<br>{{context.company.name}} Inventory Team</p>
+      bodyType: html
+
+  - id: sms_critical_alert
+    type: twilio
+    condition: "{{steps.check_if_alerts_needed.output.criticalItems.length > 0}}"
+    config:
+      operation: sms.send
+      accountSid: "{{env.TWILIO_ACCOUNT_SID}}"
+      authToken: "{{env.TWILIO_AUTH_TOKEN}}"
+      from: "{{env.TWILIO_PHONE_NUMBER}}"
+      to: "{{env.INVENTORY_MANAGER_PHONE}}"
+      body: |
+        CRITICAL: {{steps.check_if_alerts_needed.output.criticalItems.length}} products are OUT OF STOCK!
+        Check inventory dashboard immediately.
+        Total low stock items: {{steps.check_if_alerts_needed.output.itemCount}}
+
+  - id: notification_summary
+    type: output
+    config:
+      total_items_flagged: "{{steps.check_if_alerts_needed.output.itemCount}}"
+      out_of_stock: "{{steps.check_if_alerts_needed.output.criticalItems.length}}"
+      low_stock: "{{steps.check_if_alerts_needed.output.lowItems.length}}"
+      discord_sent: "{{steps.discord_alert.output.success || false}}"
+      teams_sent: "{{steps.teams_notification.output.success || false}}"
+      emails_sent: "{{steps.send_supplier_emails.output.success || false}}"
+      sms_sent: "{{steps.sms_critical_alert.output.success || false}}"
+      sheets_updated: "{{steps.populate_restock_sheet.output.success || false}}"
+      alerts_needed: "{{steps.check_if_alerts_needed.output.hasLowStock}}"

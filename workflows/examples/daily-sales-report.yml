@@ -1,0 +1,191 @@
+name: daily-sales-report
+description: Generate and distribute daily sales report across multiple channels
+
+inputs:
+  date:
+    type: string
+    required: false
+    default: "{{now}}"
+    description: Date for the report (defaults to today)
+
+outputs:
+  report_data: "{{steps.compile_report.output}}"
+  notifications_sent: "{{steps.send_summary.output}}"
+
+steps:
+  - id: format_date
+    type: datetime
+    config:
+      operation: format
+      date: "{{inputs.date}}"
+      format: "YYYY-MM-DD"
+
+  - id: get_orders
+    type: database
+    config:
+      operation: mysql.select
+      query: |
+        SELECT 
+          COUNT(*) as order_count,
+          SUM(total_price) as total_sales,
+          COUNT(DISTINCT customer_email) as unique_customers,
+          AVG(total_price) as average_order_value
+        FROM orders 
+        WHERE DATE(created_at) = ?
+      params: ["{{steps.format_date.output.formatted}}"]
+
+  - id: get_new_customers
+    type: database
+    config:
+      operation: mysql.select
+      query: |
+        SELECT COUNT(*) as new_customers
+        FROM customers 
+        WHERE DATE(created_at) = ?
+      params: ["{{steps.format_date.output.formatted}}"]
+
+  - id: get_top_products
+    type: database
+    config:
+      operation: mysql.select
+      query: |
+        SELECT 
+          product_name,
+          SUM(quantity) as total_sold,
+          SUM(quantity * price) as revenue
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.id
+        WHERE DATE(o.created_at) = ?
+        GROUP BY product_name
+        ORDER BY total_sold DESC
+        LIMIT 5
+      params: ["{{steps.format_date.output.formatted}}"]
+
+  - id: compile_report
+    type: transform
+    config:
+      expression: |
+        const orderData = steps.get_orders.output.data[0] || {};
+        const customerData = steps.get_new_customers.output.data[0] || {};
+        const topProducts = steps.get_top_products.output.data || [];
+        
+        return {
+          date: steps.format_date.output.formatted,
+          metrics: {
+            totalSales: orderData.total_sales || 0,
+            orderCount: orderData.order_count || 0,
+            uniqueCustomers: orderData.unique_customers || 0,
+            averageOrderValue: orderData.average_order_value || 0,
+            newCustomers: customerData.new_customers || 0
+          },
+          topProducts: topProducts.map(p => ({
+            name: p.product_name,
+            sold: p.total_sold,
+            revenue: p.revenue
+          }))
+        }
+
+  - id: update_google_sheets
+    type: google_sheets
+    config:
+      operation: append
+      spreadsheetId: "{{env.DAILY_REPORTS_SPREADSHEET_ID}}"
+      range: "Daily Reports!A:G"
+      values:
+        - - "{{steps.compile_report.output.date}}"
+          - "{{steps.compile_report.output.metrics.totalSales}}"
+          - "{{steps.compile_report.output.metrics.orderCount}}"
+          - "{{steps.compile_report.output.metrics.uniqueCustomers}}"
+          - "{{steps.compile_report.output.metrics.averageOrderValue}}"
+          - "{{steps.compile_report.output.metrics.newCustomers}}"
+          - "{{now}}"
+
+  - id: send_email_report
+    type: email
+    config:
+      provider: smtp
+      to: ["manager@company.com", "sales@company.com"]
+      subject: "Daily Sales Report - {{steps.compile_report.output.date}}"
+      body: |
+        <h1>Daily Sales Report</h1>
+        <p><strong>Date:</strong> {{steps.compile_report.output.date}}</p>
+        
+        <h2>Key Metrics</h2>
+        <ul>
+          <li><strong>Total Sales:</strong> ${{steps.compile_report.output.metrics.totalSales}}</li>
+          <li><strong>Orders:</strong> {{steps.compile_report.output.metrics.orderCount}}</li>
+          <li><strong>Unique Customers:</strong> {{steps.compile_report.output.metrics.uniqueCustomers}}</li>
+          <li><strong>Average Order Value:</strong> ${{steps.compile_report.output.metrics.averageOrderValue}}</li>
+          <li><strong>New Customers:</strong> {{steps.compile_report.output.metrics.newCustomers}}</li>
+        </ul>
+        
+        <h2>Top Products</h2>
+        <table border="1" style="border-collapse: collapse;">
+          <tr>
+            <th>Product</th>
+            <th>Units Sold</th>
+            <th>Revenue</th>
+          </tr>
+          {{#each steps.compile_report.output.topProducts}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{sold}}</td>
+            <td>${{revenue}}</td>
+          </tr>
+          {{/each}}
+        </table>
+        
+        <p>Report generated at {{now}}</p>
+      bodyType: html
+
+  - id: slack_summary
+    type: slack
+    config:
+      operation: messages.send
+      token: "{{env.SLACK_BOT_TOKEN}}"
+      channel: "#sales"
+      blocks:
+        - type: header
+          text:
+            type: plain_text
+            text: "📊 Daily Sales Report - {{steps.compile_report.output.date}}"
+        - type: section
+          fields:
+            - type: mrkdwn
+              text: "*Total Sales*\n${{steps.compile_report.output.metrics.totalSales}}"
+            - type: mrkdwn
+              text: "*Orders*\n{{steps.compile_report.output.metrics.orderCount}}"
+            - type: mrkdwn
+              text: "*Unique Customers*\n{{steps.compile_report.output.metrics.uniqueCustomers}}"
+            - type: mrkdwn
+              text: "*New Customers*\n{{steps.compile_report.output.metrics.newCustomers}}"
+        - type: section
+          text:
+            type: mrkdwn
+            text: "*Average Order Value:* ${{steps.compile_report.output.metrics.averageOrderValue}}"
+
+  - id: telegram_notification
+    type: telegram
+    config:
+      operation: sendMessage
+      botToken: "{{env.TELEGRAM_BOT_TOKEN}}"
+      chatId: "{{env.SALES_CHAT_ID}}"
+      text: |
+        📊 *Daily Sales Report* - {{steps.compile_report.output.date}}
+        
+        💰 Total Sales: ${{steps.compile_report.output.metrics.totalSales}}
+        📦 Orders: {{steps.compile_report.output.metrics.orderCount}}
+        👥 Unique Customers: {{steps.compile_report.output.metrics.uniqueCustomers}}
+        🆕 New Customers: {{steps.compile_report.output.metrics.newCustomers}}
+        📈 Avg Order Value: ${{steps.compile_report.output.metrics.averageOrderValue}}
+      parseMode: Markdown
+
+  - id: send_summary
+    type: output
+    config:
+      email_sent: "{{steps.send_email_report.output.success}}"
+      slack_sent: "{{steps.slack_summary.output.success}}"
+      telegram_sent: "{{steps.telegram_notification.output.success}}"
+      sheets_updated: "{{steps.update_google_sheets.output.success}}"
+      report_date: "{{steps.compile_report.output.date}}"
+      metrics: "{{steps.compile_report.output.metrics}}"

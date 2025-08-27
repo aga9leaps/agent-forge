@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import SalesAgentController from "../controllers/SalesAgentController.js";
+import SalesAgentController from "../controllers/salesAgentController.js";
 
 const router = express.Router();
 const upload = multer({ 

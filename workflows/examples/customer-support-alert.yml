@@ -1,0 +1,164 @@
+name: customer-support-alert
+description: Multi-channel customer support alert system
+
+inputs:
+  ticket_id:
+    type: string
+    required: true
+  customer_email:
+    type: string
+    required: true
+  issue_type:
+    type: string
+    required: true
+  priority:
+    type: string
+    enum: [low, normal, high, urgent]
+    default: normal
+  message:
+    type: string
+    required: true
+
+outputs:
+  result: "{{steps.database_record.output}}"
+  notifications_sent: "{{steps.send_notifications.output}}"
+
+steps:
+  - id: get_timestamp
+    type: datetime
+    config:
+      operation: now
+      format: "YYYY-MM-DD HH:mm:ss"
+      timezone: "America/New_York"
+
+  - id: database_record
+    type: database
+    config:
+      operation: mysql.insert
+      collection: support_tickets
+      data:
+        ticket_id: "{{inputs.ticket_id}}"
+        customer_email: "{{inputs.customer_email}}"
+        issue_type: "{{inputs.issue_type}}"
+        priority: "{{inputs.priority}}"
+        message: "{{inputs.message}}"
+        status: "open"
+        created_at: "{{steps.get_timestamp.output.formatted}}"
+
+  - id: determine_urgency
+    type: transform
+    config:
+      expression: |
+        const priority = inputs.priority;
+        return {
+          isUrgent: priority === 'urgent' || priority === 'high',
+          channelColor: priority === 'urgent' ? '#FF0000' : 
+                      priority === 'high' ? '#FFA500' : 
+                      priority === 'normal' ? '#0078D4' : '#008000',
+          notifyAll: priority === 'urgent'
+        }
+
+  - id: slack_alert
+    type: slack
+    config:
+      operation: messages.send
+      token: "{{env.SLACK_BOT_TOKEN}}"
+      channel: "{{steps.determine_urgency.output.isUrgent ? '#urgent-support' : '#support'}}"
+      blocks:
+        - type: header
+          text:
+            type: plain_text
+            text: "🚨 Support Ticket Alert"
+        - type: section
+          text:
+            type: mrkdwn
+            text: |
+              *Ticket ID:* {{inputs.ticket_id}}
+              *Priority:* {{inputs.priority}}
+              *Issue Type:* {{inputs.issue_type}}
+              *Customer:* {{inputs.customer_email}}
+              *Time:* {{steps.get_timestamp.output.formatted}}
+        - type: section
+          text:
+            type: mrkdwn
+            text: "*Message:*\n{{inputs.message}}"
+
+  - id: teams_notification
+    type: teams
+    condition: "{{steps.determine_urgency.output.isUrgent}}"
+    config:
+      operation: webhooks.send
+      webhookUrl: "{{env.TEAMS_WEBHOOK_URL}}"
+      title: "🚨 Urgent Support Ticket"
+      themeColor: "{{steps.determine_urgency.output.channelColor}}"
+      sections:
+        - activityTitle: "Support Ticket Alert"
+          activitySubtitle: "High priority issue requires immediate attention"
+          facts:
+            - name: "Ticket ID"
+              value: "{{inputs.ticket_id}}"
+            - name: "Priority"
+              value: "{{inputs.priority}}"
+            - name: "Customer"
+              value: "{{inputs.customer_email}}"
+            - name: "Issue Type"
+              value: "{{inputs.issue_type}}"
+            - name: "Time"
+              value: "{{steps.get_timestamp.output.formatted}}"
+          text: "{{inputs.message}}"
+
+  - id: discord_alert
+    type: discord
+    condition: "{{steps.determine_urgency.output.isUrgent}}"
+    config:
+      operation: webhooks.send
+      webhookUrl: "{{env.DISCORD_WEBHOOK_URL}}"
+      username: "SupportBot"
+      embeds:
+        - title: "🚨 Urgent Support Ticket"
+          color: 16711680
+          fields:
+            - name: "Ticket ID"
+              value: "{{inputs.ticket_id}}"
+              inline: true
+            - name: "Priority"
+              value: "{{inputs.priority}}"
+              inline: true
+            - name: "Customer"
+              value: "{{inputs.customer_email}}"
+              inline: false
+            - name: "Issue"
+              value: "{{inputs.message}}"
+              inline: false
+          footer:
+            text: "Support Alert System"
+          timestamp: "{{steps.get_timestamp.output.iso}}"
+
+  - id: sms_alert
+    type: twilio
+    condition: "{{inputs.priority === 'urgent'}}"
+    config:
+      operation: sms.send
+      accountSid: "{{env.TWILIO_ACCOUNT_SID}}"
+      authToken: "{{env.TWILIO_AUTH_TOKEN}}"
+      from: "{{env.TWILIO_PHONE_NUMBER}}"
+      to: "{{env.SUPPORT_MANAGER_PHONE}}"
+      body: |
+        URGENT: Support ticket {{inputs.ticket_id}} from {{inputs.customer_email}}
+        Issue: {{inputs.issue_type}}
+        Message: {{inputs.message}}
+
+  - id: send_notifications
+    type: output
+    config:
+      slack_sent: "{{steps.slack_alert.output.success}}"
+      teams_sent: "{{steps.teams_notification.output.success || false}}"
+      discord_sent: "{{steps.discord_alert.output.success || false}}"
+      sms_sent: "{{steps.sms_alert.output.success || false}}"
+      total_notifications: |
+        {{
+          (steps.slack_alert.output.success ? 1 : 0) +
+          (steps.teams_notification.output.success ? 1 : 0) +
+          (steps.discord_alert.output.success ? 1 : 0) +
+          (steps.sms_alert.output.success ? 1 : 0)
+        }}

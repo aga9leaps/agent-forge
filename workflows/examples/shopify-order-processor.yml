@@ -1,0 +1,91 @@
+name: shopify-order-processor
+description: Process new Shopify orders and update Google Sheets with order data
+
+inputs:
+  order_id:
+    type: string
+    required: true
+    description: Shopify order ID to process
+
+outputs:
+  result: "{{steps.notification.output}}"
+  order_data: "{{steps.get_order.output.data}}"
+  sheet_update: "{{steps.update_sheet.output}}"
+
+steps:
+  - id: get_order
+    type: shopify
+    config:
+      operation: orders.get
+      store: "{{env.SHOPIFY_STORE}}"
+      accessToken: "{{env.SHOPIFY_ACCESS_TOKEN}}"
+      resourceId: "{{inputs.order_id}}"
+
+  - id: format_order_data
+    type: transform
+    config:
+      expression: |
+        return {
+          orderId: steps.get_order.output.data.id,
+          orderNumber: steps.get_order.output.data.order_number,
+          customerName: steps.get_order.output.data.customer?.first_name + ' ' + steps.get_order.output.data.customer?.last_name,
+          customerEmail: steps.get_order.output.data.customer?.email,
+          totalPrice: steps.get_order.output.data.total_price,
+          currency: steps.get_order.output.data.currency,
+          createdAt: steps.get_order.output.data.created_at,
+          status: steps.get_order.output.data.fulfillment_status || 'pending',
+          lineItems: steps.get_order.output.data.line_items?.map(item => ({
+            title: item.title,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        }
+
+  - id: update_sheet
+    type: google_sheets
+    config:
+      operation: append
+      spreadsheetId: "{{env.ORDERS_SPREADSHEET_ID}}"
+      range: "Orders!A:H"
+      values:
+        - - "{{steps.format_order_data.output.orderId}}"
+          - "{{steps.format_order_data.output.orderNumber}}"
+          - "{{steps.format_order_data.output.customerName}}"
+          - "{{steps.format_order_data.output.customerEmail}}"
+          - "{{steps.format_order_data.output.totalPrice}}"
+          - "{{steps.format_order_data.output.currency}}"
+          - "{{steps.format_order_data.output.createdAt}}"
+          - "{{steps.format_order_data.output.status}}"
+
+  - id: send_confirmation
+    type: email
+    config:
+      provider: smtp
+      to: ["{{steps.format_order_data.output.customerEmail}}"]
+      subject: "Order Confirmation - #{{steps.format_order_data.output.orderNumber}}"
+      body: |
+        <h2>Thank you for your order!</h2>
+        <p>Dear {{steps.format_order_data.output.customerName}},</p>
+        <p>We've received your order and it's being processed.</p>
+        <ul>
+          <li><strong>Order Number:</strong> #{{steps.format_order_data.output.orderNumber}}</li>
+          <li><strong>Total:</strong> {{steps.format_order_data.output.totalPrice}} {{steps.format_order_data.output.currency}}</li>
+          <li><strong>Status:</strong> {{steps.format_order_data.output.status}}</li>
+        </ul>
+        <p>We'll notify you when your order ships.</p>
+        <p>Best regards,<br>{{context.company.name}}</p>
+      bodyType: html
+
+  - id: notification
+    type: slack
+    config:
+      operation: messages.send
+      token: "{{env.SLACK_BOT_TOKEN}}"
+      channel: "#orders"
+      text: |
+        New order received! 🎉
+        Order: #{{steps.format_order_data.output.orderNumber}}
+        Customer: {{steps.format_order_data.output.customerName}}
+        Total: {{steps.format_order_data.output.totalPrice}} {{steps.format_order_data.output.currency}}
+      username: OrderBot
+      iconEmoji: ":package:"

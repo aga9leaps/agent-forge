@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import cron from 'node-cron';
 import MPConsumersRepository from '../repository/MPConsumersRepository.js';
-import MPSalesTasksRepository from '../repository/MPSalesTasksRepository.js';
+import MPSalesTasksRepository from '../repository/mpSalesTasksRepository.js';
 import WhatsAppService from './WhatsAppService.js';
 import { googleCloudStorageService } from '../serviceConfigs/GoogleCloudStorageService.js';
 

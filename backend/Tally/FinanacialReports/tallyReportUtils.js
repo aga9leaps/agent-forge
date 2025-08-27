@@ -2,7 +2,7 @@ import axios from "axios";
 import puppeteer from "puppeteer";
 import { uploadFileToS3 } from "../s3Utils.js";
 import dotenv from "dotenv";
-import pdfParse from 'pdf-parse';
+// pdf-parse will be dynamically imported when needed to avoid startup issues
 
 dotenv.config({ path: "../../configs/.env" });
 
@@ -194,6 +194,8 @@ export function formatDateRange(fromDate, toDate) {
 // Function to extract text from PDF buffer
 export async function extractTextFromPDF(pdfBuffer) {
   try {
+    // Dynamic import to avoid loading pdf-parse at startup
+    const pdfParse = (await import('pdf-parse')).default;
     const data = await pdfParse(pdfBuffer);
     return data.text;
   } catch (error) {

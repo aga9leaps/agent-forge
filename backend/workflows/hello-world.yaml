@@ -1,0 +1,33 @@
+name: hello-world
+description: A simple hello world workflow to test the engine
+version: 1.0
+
+inputs:
+  name:
+    type: string
+    required: true
+    description: Name of the person to greet
+
+steps:
+  - id: generate_greeting
+    name: Generate Personalized Greeting
+    type: agent
+    config:
+      prompt: "Generate a friendly, professional greeting for {{inputs.name}}. Keep it short and welcoming."
+      temperature: 0.7
+      
+  - id: format_output
+    name: Format Output
+    type: transform
+    config:
+      expression: |
+        return {
+          greeting: "{{steps.generate_greeting.output}}",
+          timestamp: "{{now}}",
+          user: "{{inputs.name}}"
+        };
+
+outputs:
+  message: "{{steps.format_output.output.greeting}}"
+  timestamp: "{{steps.format_output.output.timestamp}}"
+  user: "{{steps.format_output.output.user}}"
