@@ -1,5 +1,6 @@
 import React from 'react'
 import { useQuery } from 'react-query'
+import { useNavigate } from 'react-router-dom'
 import { 
   Activity, 
   Workflow, 
@@ -14,6 +15,8 @@ import {
 import { agentForgeAPI } from '../services/api'
 
 function Dashboard() {
+  const navigate = useNavigate()
+  
   const { data: workflows, isLoading: workflowsLoading } = useQuery(
     'workflows',
     agentForgeAPI.workflows.list,
@@ -23,8 +26,32 @@ function Dashboard() {
   const { data: systemStatus } = useQuery(
     'system-status',
     agentForgeAPI.system.status,
-    { refetchInterval: 5000 }
+    { 
+      refetchInterval: 5000,
+      retry: false // Don't retry on error to avoid console spam
+    }
   )
+
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case 'create-workflow':
+        navigate('/workflows/editor')
+        break
+      case 'new-context':
+        navigate('/contexts')
+        break
+      case 'run-test':
+        // For now, navigate to executions page
+        navigate('/executions')
+        break
+      case 'view-logs':
+        // For now, navigate to executions page
+        navigate('/executions')
+        break
+      default:
+        break
+    }
+  }
 
   const stats = [
     {
@@ -205,25 +232,37 @@ function Dashboard() {
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group">
+          <button 
+            onClick={() => handleQuickAction('create-workflow')}
+            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group"
+          >
             <div className="text-center">
               <Workflow className="h-8 w-8 text-gray-400 group-hover:text-forge-600 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-600 group-hover:text-forge-700">Create Workflow</p>
             </div>
           </button>
-          <button className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group">
+          <button 
+            onClick={() => handleQuickAction('new-context')}
+            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group"
+          >
             <div className="text-center">
               <Database className="h-8 w-8 text-gray-400 group-hover:text-forge-600 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-600 group-hover:text-forge-700">New Context</p>
             </div>
           </button>
-          <button className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group">
+          <button 
+            onClick={() => handleQuickAction('run-test')}
+            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group"
+          >
             <div className="text-center">
               <Play className="h-8 w-8 text-gray-400 group-hover:text-forge-600 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-600 group-hover:text-forge-700">Run Test</p>
             </div>
           </button>
-          <button className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group">
+          <button 
+            onClick={() => handleQuickAction('view-logs')}
+            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-forge-500 hover:bg-forge-50 transition-colors group"
+          >
             <div className="text-center">
               <AlertCircle className="h-8 w-8 text-gray-400 group-hover:text-forge-600 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-600 group-hover:text-forge-700">View Logs</p>

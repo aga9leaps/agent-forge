@@ -8,10 +8,13 @@ import {
   Trash2,
   Settings,
   Eye,
-  Code
+  Code,
+  Undo2,
+  Redo2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MonacoEditor from '@monaco-editor/react'
+import VisualWorkflowEditor from '../components/VisualWorkflowEditor'
 
 function WorkflowEditor() {
   const { workflowName } = useParams()
@@ -19,10 +22,13 @@ function WorkflowEditor() {
   const [workflowData, setWorkflowData] = useState('')
   const [viewMode, setViewMode] = useState('visual') // 'visual' or 'code'
   const [isValidYaml, setIsValidYaml] = useState(true)
+  const [nodeCounter, setNodeCounter] = useState(1)
+  const [history, setHistory] = useState([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
 
   const sampleWorkflow = `name: sample-workflow
 version: "1.0"
-description: "Sample workflow demonstrating basic functionality"
+description: "Sample workflow demonstrating Phase 1 features"
 
 inputs:
   message:
@@ -31,13 +37,18 @@ inputs:
     description: "Input message to process"
 
 steps:
-  - id: log_input
-    type: output
-    config:
-      message: "Processing: {{inputs.message}}"
-  
-  - id: transform_message
+  - id: validate_input
     type: transform
+    config:
+      expression: |
+        return {
+          valid: inputs.message && inputs.message.length > 0,
+          message: inputs.message
+        }
+  
+  - id: process_message
+    type: transform
+    condition: "{{steps.validate_input.output.valid == true}}"
     config:
       expression: |
         return {
@@ -46,24 +57,43 @@ steps:
           length: inputs.message.length,
           timestamp: new Date().toISOString()
         }
+    on_error: "error_handler"
   
   - id: http_request
     type: http
+    condition: "{{steps.process_message.success}}"
     config:
       method: GET
       url: "https://httpbin.org/json"
-      headers:
-        Content-Type: "application/json"
+    on_error: "http_error_handler"
   
-  - id: final_output
+  - id: success_output
     type: output
+    condition: "{{steps.http_request.success}}"
     config:
-      message: "Processed {{steps.transform_message.output.length}} characters"
-      data: "{{steps.transform_message.output}}"
+      message: "✅ Success: Processed {{steps.process_message.output.length}} characters"
+      data: "{{steps.process_message.output}}"
+  
+  - id: error_handler
+    type: output
+    condition: "{{steps.process_message.error}}"
+    config:
+      message: "❌ Transform Error: {{steps.process_message.error}}"
+  
+  - id: http_error_handler
+    type: output
+    condition: "{{steps.http_request.error}}"
+    config:
+      message: "❌ HTTP Error: {{steps.http_request.error}}"
+  
+  - id: invalid_input_handler
+    type: output
+    condition: "{{steps.validate_input.output.valid == false}}"
+    config:
+      message: "❌ Invalid Input: Message cannot be empty"
 
 outputs:
-  result: "{{steps.final_output.output}}"
-  http_data: "{{steps.http_request.output}}"
+  result: "{{steps.success_output.output || steps.error_handler.output || steps.http_error_handler.output || steps.invalid_input_handler.output}}"
 
 trigger:
   type: manual`
@@ -77,7 +107,11 @@ trigger:
       // New workflow
       setWorkflowData(sampleWorkflow)
     }
-  }, [workflowName])
+    
+    // Initialize history with the sample workflow
+    setHistory([sampleWorkflow])
+    setHistoryIndex(0)
+  }, [workflowName, sampleWorkflow])
 
   const handleSave = async () => {
     try {
@@ -106,6 +140,202 @@ trigger:
 
   const handleValidation = (markers) => {
     setIsValidYaml(markers.length === 0)
+  }
+
+  // Save state to history for undo/redo
+  const saveToHistory = (newData) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1)
+      newHistory.push(newData)
+      return newHistory.slice(-20) // Keep only last 20 states
+    })
+    setHistoryIndex(prev => Math.min(prev + 1, 19))
+  }
+
+  // Undo function
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const prevState = history[historyIndex - 1]
+      setWorkflowData(prevState)
+      setHistoryIndex(prev => prev - 1)
+      toast.success('Undone')
+    }
+  }
+
+  // Redo function
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextState = history[historyIndex + 1]
+      setWorkflowData(nextState)
+      setHistoryIndex(prev => prev + 1)
+      toast.success('Redone')
+    }
+  }
+
+  // Enhanced workflow data setter that saves to history
+  const updateWorkflowData = (newData) => {
+    if (newData !== workflowData) {
+      saveToHistory(workflowData) // Save current state before changing
+      setWorkflowData(newData)
+    }
+  }
+
+  // Function to generate node template YAML
+  const generateNodeYaml = (nodeType, nodeName) => {
+    const templates = {
+      output: `  - id: ${nodeName}
+    type: output
+    condition: "{{inputs.success == true}}"  # Optional: only run if condition is true
+    config:
+      message: "Output message here"
+    on_error: "handle_error"  # Optional: step to run on error`,
+      
+      transform: `  - id: ${nodeName}
+    type: transform
+    config:
+      expression: |
+        return {
+          // Your transformation logic here
+          result: inputs.data
+        }`,
+      
+      conditional: `  - id: ${nodeName}
+    type: conditional
+    condition: "{{inputs.condition}} == true"
+    if_true:
+      - id: ${nodeName}_true
+        type: output
+        config:
+          message: "Condition was true"
+    if_false:
+      - id: ${nodeName}_false
+        type: output
+        config:
+          message: "Condition was false"`,
+      
+      agent: `  - id: ${nodeName}
+    type: agent
+    config:
+      prompt: "Your AI prompt here"
+      context: "default"`,
+      
+      http: `  - id: ${nodeName}
+    type: http
+    config:
+      method: GET
+      url: "https://api.example.com/data"
+      headers:
+        Content-Type: "application/json"`,
+      
+      database: `  - id: ${nodeName}
+    type: database
+    config:
+      operation: "select"
+      query: "SELECT * FROM table WHERE condition = '{{inputs.value}}'"`,
+      
+      email: `  - id: ${nodeName}
+    type: email
+    config:
+      to: "recipient@example.com"
+      subject: "Email Subject"
+      body: "Email body content"`,
+      
+      slack: `  - id: ${nodeName}
+    type: slack
+    config:
+      channel: "#general"
+      message: "Slack message content"`,
+      
+      shopify: `  - id: ${nodeName}
+    type: shopify
+    config:
+      operation: "get_orders"
+      limit: 10`,
+      
+      google_sheets: `  - id: ${nodeName}
+    type: google_sheets
+    config:
+      spreadsheet_id: "your_spreadsheet_id"
+      range: "Sheet1!A1:Z100"
+      operation: "read"`,
+      
+      telegram: `  - id: ${nodeName}
+    type: telegram
+    config:
+      chat_id: "your_chat_id"
+      message: "Telegram message content"`,
+      
+      discord: `  - id: ${nodeName}
+    type: discord
+    config:
+      channel_id: "your_channel_id"
+      message: "Discord message content"`,
+      
+      teams: `  - id: ${nodeName}
+    type: teams
+    config:
+      webhook_url: "your_teams_webhook_url"
+      message: "Teams message content"`,
+      
+      twilio: `  - id: ${nodeName}
+    type: twilio
+    config:
+      to: "+1234567890"
+      message: "SMS message content"`
+    }
+    
+    return templates[nodeType] || `  - id: ${nodeName}
+    type: ${nodeType}
+    config:
+      # Configuration for ${nodeType} node`
+  }
+
+  // Function to handle drag start for visual editor
+  const onDragStart = (event, nodeType) => {
+    event.dataTransfer.setData('application/reactflow', nodeType)
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  // Function to add node to YAML editor
+  const addNodeToWorkflow = (nodeType, customName = null) => {
+    const nodeName = customName || `${nodeType}_${nodeCounter}`
+    const nodeTemplate = generateNodeYaml(nodeType, nodeName)
+    setNodeCounter(prev => prev + 1)
+    
+    // Find the steps section in the YAML
+    const lines = workflowData.split('\n')
+    let stepsIndex = lines.findIndex(line => line.trim() === 'steps:')
+    
+    if (stepsIndex === -1) {
+      // If no steps section exists, add one at the end
+      const newWorkflow = workflowData + '\n\nsteps:\n' + nodeTemplate
+      setWorkflowData(newWorkflow)
+    } else {
+      // Find the last step and add the new node after it
+      let insertIndex = stepsIndex + 1
+      
+      // Find where to insert the new step (after the last step)
+      for (let i = stepsIndex + 1; i < lines.length; i++) {
+        if (lines[i].startsWith('  - id:') || lines[i].trim().startsWith('- id:')) {
+          // Find the end of this step
+          let j = i + 1
+          while (j < lines.length && (lines[j].startsWith('    ') || lines[j].trim() === '')) {
+            j++
+          }
+          insertIndex = j
+        } else if (lines[i].trim() && !lines[i].startsWith('  ') && !lines[i].startsWith('\t')) {
+          // Found a new top-level section
+          break
+        }
+      }
+      
+      lines.splice(insertIndex, 0, nodeTemplate)
+      setWorkflowData(lines.join('\n'))
+    }
+    
+    // Switch to code view to show the added node
+    setViewMode('code')
+    toast.success(`Added ${nodeName} node to workflow`)
   }
 
   return (
@@ -154,6 +384,25 @@ trigger:
               </button>
             </div>
             
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                title="Redo (Ctrl+Y)"
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </div>
+            
             <button
               onClick={handleExecute}
               className="btn-secondary px-4 py-2"
@@ -182,7 +431,7 @@ trigger:
                   height="100%"
                   defaultLanguage="yaml"
                   value={workflowData}
-                  onChange={setWorkflowData}
+                  onChange={updateWorkflowData}
                   onValidate={handleValidation}
                   options={{
                     minimap: { enabled: false },
@@ -196,17 +445,11 @@ trigger:
               </div>
             </div>
           ) : (
-            <div className="flex-1 p-4 bg-gray-50">
-              <div className="bg-white border rounded-lg p-6 h-full">
-                <div className="text-center text-gray-500">
-                  <Settings className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Visual Editor</h3>
-                  <p className="text-sm mb-4">Visual workflow builder coming soon!</p>
-                  <p className="text-xs text-gray-400">
-                    For now, use the Code view to edit your workflow YAML
-                  </p>
-                </div>
-              </div>
+            <div className="flex-1 bg-gray-50">
+              <VisualWorkflowEditor 
+                workflowData={workflowData}
+                onWorkflowChange={updateWorkflowData}
+              />
             </div>
           )}
         </div>
@@ -215,7 +458,12 @@ trigger:
         <div className="w-80 bg-white border-l">
           <div className="p-4 border-b">
             <h3 className="font-medium text-gray-900">Available Nodes</h3>
-            <p className="text-sm text-gray-500 mt-1">Drag nodes to add them to your workflow</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {viewMode === 'visual' 
+                ? 'Drag nodes to the visual editor or click to add to YAML'
+                : 'Click any node to add it to your workflow'
+              }
+            </p>
           </div>
           
           <div className="p-4 space-y-4">
@@ -229,9 +477,20 @@ trigger:
                   { name: 'Conditional', type: 'conditional', description: 'Conditional logic' },
                   { name: 'Agent', type: 'agent', description: 'AI agent interaction' },
                 ].map(node => (
-                  <div key={node.type} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div 
+                    key={node.type}
+                    draggable={viewMode === 'visual'}
+                    onDragStart={(event) => onDragStart(event, node.type)}
+                    onClick={() => addNodeToWorkflow(node.type)}
+                    className={`p-3 border rounded-lg hover:bg-forge-50 hover:border-forge-300 transition-all ${
+                      viewMode === 'visual' ? 'cursor-move' : 'cursor-pointer'
+                    }`}
+                  >
                     <div className="font-medium text-sm text-gray-900">{node.name}</div>
                     <div className="text-xs text-gray-500">{node.description}</div>
+                    <div className="text-xs text-forge-600 mt-1 font-medium opacity-0 hover:opacity-100 transition-opacity">
+                      {viewMode === 'visual' ? 'Drag to canvas or click →' : 'Click to add →'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -249,9 +508,20 @@ trigger:
                   { name: 'Shopify', type: 'shopify', description: 'Shopify operations' },
                   { name: 'Google Sheets', type: 'google_sheets', description: 'Google Sheets operations' },
                 ].map(node => (
-                  <div key={node.type} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div 
+                    key={node.type}
+                    draggable={viewMode === 'visual'}
+                    onDragStart={(event) => onDragStart(event, node.type)}
+                    onClick={() => addNodeToWorkflow(node.type)}
+                    className={`p-3 border rounded-lg hover:bg-forge-50 hover:border-forge-300 transition-all ${
+                      viewMode === 'visual' ? 'cursor-move' : 'cursor-pointer'
+                    }`}
+                  >
                     <div className="font-medium text-sm text-gray-900">{node.name}</div>
                     <div className="text-xs text-gray-500">{node.description}</div>
+                    <div className="text-xs text-forge-600 mt-1 font-medium opacity-0 hover:opacity-100 transition-opacity">
+                      {viewMode === 'visual' ? 'Drag to canvas or click →' : 'Click to add →'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -267,9 +537,20 @@ trigger:
                   { name: 'Teams', type: 'teams', description: 'Microsoft Teams integration' },
                   { name: 'Twilio', type: 'twilio', description: 'SMS and voice calls' },
                 ].map(node => (
-                  <div key={node.type} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div 
+                    key={node.type}
+                    draggable={viewMode === 'visual'}
+                    onDragStart={(event) => onDragStart(event, node.type)}
+                    onClick={() => addNodeToWorkflow(node.type)}
+                    className={`p-3 border rounded-lg hover:bg-forge-50 hover:border-forge-300 transition-all ${
+                      viewMode === 'visual' ? 'cursor-move' : 'cursor-pointer'
+                    }`}
+                  >
                     <div className="font-medium text-sm text-gray-900">{node.name}</div>
                     <div className="text-xs text-gray-500">{node.description}</div>
+                    <div className="text-xs text-forge-600 mt-1 font-medium opacity-0 hover:opacity-100 transition-opacity">
+                      {viewMode === 'visual' ? 'Drag to canvas or click →' : 'Click to add →'}
+                    </div>
                   </div>
                 ))}
               </div>

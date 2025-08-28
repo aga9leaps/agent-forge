@@ -1,0 +1,25 @@
+{
+  "name": "techstart",
+  "description": "Tech startup context for innovative companies",
+  "business": {
+    "name": "TechStart Inc",
+    "type": "Technology Startup",
+    "industry": "SaaS",
+    "stage": "Series A"
+  },
+  "agent": {
+    "role": "Startup Assistant",
+    "personality": "Energetic and innovative",
+    "capabilities": ["product management", "customer support", "growth hacking"]
+  },
+  "settings": {
+    "language": "en",
+    "timezone": "America/Los_Angeles",
+    "defaultCurrency": "USD",
+    "features": {
+      "growthTracking": true,
+      "customerOnboarding": true,
+      "feedbackCollection": true
+    }
+  }
+}

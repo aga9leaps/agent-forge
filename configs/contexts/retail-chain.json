@@ -1,0 +1,27 @@
+{
+  "name": "retail-chain",
+  "description": "Retail chain context for multi-location businesses",
+  "business": {
+    "name": "Retail Chain Co",
+    "type": "Retail Chain",
+    "industry": "Retail",
+    "locations": 25,
+    "revenue": "50M"
+  },
+  "agent": {
+    "role": "Retail Operations Assistant",
+    "personality": "Efficient and customer-focused",
+    "capabilities": ["inventory management", "customer service", "sales reporting", "supply chain"]
+  },
+  "settings": {
+    "language": "en",
+    "timezone": "America/New_York",
+    "defaultCurrency": "USD",
+    "features": {
+      "inventoryTracking": true,
+      "customerLoyalty": true,
+      "supplierManagement": true,
+      "salesAnalytics": true
+    }
+  }
+}

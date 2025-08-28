@@ -1,0 +1,19 @@
+{
+  "name": "default",
+  "description": "Default Agent Forge context",
+  "business": {
+    "name": "Agent Forge Platform",
+    "type": "AI Platform",
+    "industry": "Technology"
+  },
+  "agent": {
+    "role": "AI Assistant",
+    "personality": "Professional and helpful",
+    "capabilities": ["workflow automation", "data processing", "communication"]
+  },
+  "settings": {
+    "language": "en",
+    "timezone": "UTC",
+    "defaultCurrency": "USD"
+  }
+}

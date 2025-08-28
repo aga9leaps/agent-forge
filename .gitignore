@@ -110,4 +110,4 @@ Thumbs.db
 # Agent Forge specific
 *.zip
 test/data/*.pdf
-uploads/
+uploads/screenshots/
