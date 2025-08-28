@@ -3,6 +3,7 @@ import createAgentRouter from "./src/routes/agentRouter.js";
 import createSalesAgentRouter from "./src/routes/salesAgentRouter.js";
 import createCampaignManagerRouter from "./src/routes/campaignManagerRouter.js";
 import workflowRouter from "./src/routes/workflowRouter.js";
+import frontendRouter from "./src/routes/frontendRouter.js";
 import { contextMiddleware } from "./src/middleware/contextMiddleware.js";
 import cors from "cors";
 import initializeDatabases from "./src/utils/initializeDatabases.js";
@@ -56,6 +57,9 @@ app.use("/api", createAgentRouter());
 app.use("/api/sales", createSalesAgentRouter());
 app.use("/api/campaign", createCampaignManagerRouter());
 app.use("/api/workflows", workflowRouter);
+
+// Frontend Routes (must be last)
+app.use("/", frontendRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

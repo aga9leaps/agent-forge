@@ -1,8 +1,23 @@
-# Magic Paints AI Agent → Generic Workflow Platform
+# 🏎️ Agent Forge "Type 35" (v2.0)
 
-**Status**: ✅ Transformation Complete - Text-Based Workflow Engine Operational
+**Where AI agents are forged** - A multi-tenant workflow platform with MCP integration.
 
-This repository documents the complete transformation of a business-specific AI agent into a generic, multi-tenant workflow automation platform.
+Named after the legendary Bugatti Type 35, the most successful racing car ever made (2000+ victories).
+
+## 🚀 New Features in Type 35
+
+- **Web UI Added** - Modern React-based admin interface
+- **Context Manager** - Visual configuration management
+- **Workflow Editor** - Monaco editor with YAML syntax highlighting  
+- **Execution Monitor** - Real-time workflow debugging
+- **Node Library** - Browse and understand available nodes
+- **Settings Panel** - Platform configuration interface
+
+---
+
+## Previous Transformation: Magic Paints AI Agent → Generic Workflow Platform
+
+**Status**: ✅ Complete - Successfully evolved from business-specific agent to generic platform
 
 ---
 
