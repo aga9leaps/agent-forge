@@ -219,6 +219,29 @@ class WorkflowController {
   }
 
   /**
+   * Reload all workflows from disk
+   * POST /api/workflows/reload
+   */
+  async reloadWorkflows(req, res) {
+    try {
+      const loadedCount = await workflowEngine.loadAllWorkflows();
+      
+      res.json({
+        success: true,
+        message: `Reloaded ${loadedCount} workflows`,
+        loadedCount
+      });
+      
+    } catch (error) {
+      console.error('Error reloading workflows:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Validate workflow file
    * POST /api/workflows/validate
    */

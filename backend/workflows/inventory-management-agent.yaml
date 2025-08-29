@@ -1,0 +1,348 @@
+name: inventory-management-agent
+description: "Comprehensive inventory management agent for e-commerce brands with Shopify integration"
+version: "1.0"
+
+inputs:
+  shopify_store:
+    type: string
+    required: true
+    description: "Your Shopify store domain (e.g., your-store.myshopify.com)"
+  shopify_token:
+    type: string
+    required: true  
+    description: "Shopify Admin API access token"
+  inventory_sheet_id:
+    type: string
+    required: true
+    description: "Google Sheets ID for inventory tracking"
+  hours_lookback:
+    type: number
+    default: 24
+    description: "Hours to look back for new orders"
+
+outputs:
+  inventory_updates: "{{steps.compile_results.output.inventory_updates}}"
+  purchase_orders: "{{steps.compile_results.output.purchase_orders_needed}}"
+  pre_order_updates: "{{steps.compile_results.output.pre_order_updates}}"
+  summary: "{{steps.compile_results.output.summary}}"
+
+steps:
+  # Step 1: Get recent orders from Shopify to analyze sales
+  - id: get_recent_orders
+    name: "Fetch Recent Shopify Orders"
+    type: shopify
+    config:
+      operation: "orders.list"
+      store: "{{inputs.shopify_store}}"
+      accessToken: "{{inputs.shopify_token}}"
+      params:
+        limit: 250
+        status: "any"
+        created_at_min: "{{datetime.subtract(datetime.now(), inputs.hours_lookback, 'hours')}}"
+        fields: "id,name,line_items,created_at,financial_status"
+
+  # Step 2: Load current inventory data from Google Sheets
+  - id: load_inventory_sheet
+    name: "Load Inventory Data from Google Sheets"
+    type: googlesheets
+    config:
+      operation: "read"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Inventory!A:J"  # SKU, Name, Current Stock, Reorder Point, Lead Time Days, Supplier, Cost, Location, Bundle Parent, Notes
+
+  # Step 3: Load bundle definitions from Google Sheets
+  - id: load_bundle_definitions
+    name: "Load Bundle Definitions"
+    type: googlesheets
+    config:
+      operation: "read"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Bundles!A:D"  # Bundle SKU, Component SKU, Quantity, Notes
+
+  # Step 4: Process sales and calculate inventory impact
+  - id: process_sales_impact
+    name: "Process Sales and Calculate Inventory Deductions"
+    type: transform
+    config:
+      expression: |
+        const orders = steps.get_recent_orders.output.data || [];
+        const inventory = (steps.load_inventory_sheet.output.data || []).slice(1); // Skip header
+        const bundles = (steps.load_bundle_definitions.output.data || []).slice(1); // Skip header
+        
+        // Convert inventory to map for easy lookup
+        const inventoryMap = {};
+        inventory.forEach(row => {
+          if (row[0]) { // SKU exists
+            inventoryMap[row[0]] = {
+              sku: row[0],
+              name: row[1],
+              currentStock: parseInt(row[2]) || 0,
+              reorderPoint: parseInt(row[3]) || 10,
+              leadTimeDays: parseInt(row[4]) || 14,
+              supplier: row[5],
+              cost: parseFloat(row[6]) || 0,
+              location: row[7] || 'Main',
+              bundleParent: row[8],
+              notes: row[9]
+            };
+          }
+        });
+        
+        // Create bundle map
+        const bundleMap = {};
+        bundles.forEach(row => {
+          if (row[0] && row[1]) {
+            if (!bundleMap[row[0]]) bundleMap[row[0]] = [];
+            bundleMap[row[0]].push({
+              sku: row[1],
+              quantity: parseInt(row[2]) || 1,
+              notes: row[3]
+            });
+          }
+        });
+        
+        // Process sales deductions
+        let totalSalesImpact = {};
+        let bundleSales = [];
+        
+        orders.forEach(order => {
+          if (order.line_items) {
+            order.line_items.forEach(item => {
+              const sku = item.sku || item.variant_title || item.title;
+              if (!sku) return;
+              
+              // Check if this is a bundle
+              if (bundleMap[sku]) {
+                bundleSales.push({
+                  orderName: order.name,
+                  bundleSku: sku,
+                  quantity: item.quantity,
+                  components: bundleMap[sku]
+                });
+                
+                // Deduct from component SKUs
+                bundleMap[sku].forEach(component => {
+                  const totalDeduction = component.quantity * item.quantity;
+                  totalSalesImpact[component.sku] = (totalSalesImpact[component.sku] || 0) + totalDeduction;
+                });
+              } else {
+                // Direct SKU sale
+                totalSalesImpact[sku] = (totalSalesImpact[sku] || 0) + item.quantity;
+              }
+            });
+          }
+        });
+        
+        return {
+          ordersProcessed: orders.length,
+          inventoryMap,
+          bundleMap,
+          totalSalesImpact,
+          bundleSales,
+          processingDate: new Date().toISOString()
+        };
+
+  # Step 5: Calculate new inventory levels and identify reorder needs
+  - id: calculate_inventory_updates
+    name: "Calculate Updated Inventory Levels"
+    type: transform
+    config:
+      expression: |
+        const { inventoryMap, totalSalesImpact } = steps.process_sales_impact.output;
+        
+        let updatedInventory = [];
+        let reorderNeeded = [];
+        let criticalStock = [];
+        
+        // Update inventory levels and check reorder points
+        Object.keys(inventoryMap).forEach(sku => {
+          const item = inventoryMap[sku];
+          const sold = totalSalesImpact[sku] || 0;
+          const newStock = Math.max(0, item.currentStock - sold);
+          
+          const updatedItem = {
+            ...item,
+            previousStock: item.currentStock,
+            soldQuantity: sold,
+            newStock: newStock,
+            needsReorder: newStock <= item.reorderPoint,
+            isCritical: newStock <= (item.reorderPoint * 0.5),
+            suggestedOrderQuantity: newStock <= item.reorderPoint ? 
+              Math.max(item.reorderPoint * 2, 50) : 0
+          };
+          
+          updatedInventory.push(updatedItem);
+          
+          if (updatedItem.needsReorder) {
+            reorderNeeded.push(updatedItem);
+          }
+          
+          if (updatedItem.isCritical) {
+            criticalStock.push(updatedItem);
+          }
+        });
+        
+        return {
+          updatedInventory,
+          reorderNeeded,
+          criticalStock,
+          totalSkusNeedingReorder: reorderNeeded.length,
+          totalCriticalSkus: criticalStock.length
+        };
+
+  # Step 6: Generate purchase orders for items needing reorder
+  - id: generate_purchase_orders
+    name: "Generate Purchase Orders"
+    type: transform
+    config:
+      expression: |
+        const { reorderNeeded } = steps.calculate_inventory_updates.output;
+        const today = new Date();
+        
+        // Group by supplier
+        const supplierGroups = {};
+        reorderNeeded.forEach(item => {
+          const supplier = item.supplier || 'Unknown Supplier';
+          if (!supplierGroups[supplier]) {
+            supplierGroups[supplier] = [];
+          }
+          supplierGroups[supplier].push(item);
+        });
+        
+        // Generate PO for each supplier
+        const purchaseOrders = [];
+        let poNumber = 1000 + Math.floor(Math.random() * 9000);
+        
+        Object.keys(supplierGroups).forEach(supplier => {
+          const items = supplierGroups[supplier];
+          const maxLeadTime = Math.max(...items.map(i => i.leadTimeDays));
+          
+          const expectedDelivery = new Date(today);
+          expectedDelivery.setDate(today.getDate() + maxLeadTime);
+          
+          const po = {
+            poNumber: `PO-${poNumber++}`,
+            supplier: supplier,
+            createdDate: today.toISOString().split('T')[0],
+            expectedDelivery: expectedDelivery.toISOString().split('T')[0],
+            leadTimeDays: maxLeadTime,
+            items: items.map(item => ({
+              sku: item.sku,
+              name: item.name,
+              currentStock: item.newStock,
+              orderQuantity: item.suggestedOrderQuantity,
+              unitCost: item.cost,
+              totalCost: item.suggestedOrderQuantity * item.cost,
+              location: item.location
+            })),
+            totalItems: items.length,
+            totalCost: items.reduce((sum, item) => sum + (item.suggestedOrderQuantity * item.cost), 0),
+            status: 'Generated',
+            priority: items.some(i => i.isCritical) ? 'HIGH' : 'NORMAL'
+          };
+          
+          purchaseOrders.push(po);
+        });
+        
+        return { purchaseOrders };
+
+  # Step 7: Check current Shopify inventory levels
+  - id: get_shopify_inventory
+    name: "Get Current Shopify Inventory"
+    type: shopify
+    config:
+      operation: "inventory.levels"
+      store: "{{inputs.shopify_store}}"
+      accessToken: "{{inputs.shopify_token}}"
+
+  # Step 8: Update inventory in Google Sheets
+  - id: update_inventory_sheet
+    name: "Update Inventory Levels in Google Sheets"
+    type: googlesheets
+    config:
+      operation: "update"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Inventory!C:C"  # Current Stock column
+      data: "{{steps.calculate_inventory_updates.output.updatedInventory.map(item => [item.newStock])}}"
+
+  # Step 9: Log purchase orders to sheets
+  - id: log_purchase_orders
+    name: "Log Purchase Orders to Google Sheets"
+    type: googlesheets
+    config:
+      operation: "append"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "PurchaseOrders!A:I"
+      data: "{{steps.generate_purchase_orders.output.purchaseOrders.map(po => [po.poNumber, po.supplier, po.createdDate, po.expectedDelivery, po.totalItems, po.totalCost, po.status, po.priority, JSON.stringify(po.items)])}}"
+
+  # Step 10: Check for pre-order products and manage dates
+  - id: manage_preorder_dates
+    name: "Manage Pre-order Product Dates"
+    type: transform
+    config:
+      expression: |
+        const { reorderNeeded } = steps.calculate_inventory_updates.output;
+        const { purchaseOrders } = steps.generate_purchase_orders.output;
+        
+        // Find items that might need pre-order date adjustments
+        const preOrderUpdates = [];
+        
+        reorderNeeded.forEach(item => {
+          if (item.isCritical || item.newStock === 0) {
+            // Find the PO for this item to get delivery date
+            const relatedPO = purchaseOrders.find(po => 
+              po.items.some(poItem => poItem.sku === item.sku)
+            );
+            
+            if (relatedPO) {
+              preOrderUpdates.push({
+                sku: item.sku,
+                name: item.name,
+                currentStock: item.newStock,
+                suggestedPreOrderDate: relatedPO.expectedDelivery,
+                reason: item.newStock === 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+                poNumber: relatedPO.poNumber
+              });
+            }
+          }
+        });
+        
+        return { preOrderUpdates };
+
+  # Step 11: Compile final results and summary
+  - id: compile_results
+    name: "Compile Final Results and Summary"
+    type: transform
+    config:
+      expression: |
+        const salesImpact = steps.process_sales_impact.output;
+        const inventoryUpdates = steps.calculate_inventory_updates.output;
+        const purchaseOrders = steps.generate_purchase_orders.output.purchaseOrders;
+        const preOrderUpdates = steps.manage_preorder_dates.output.preOrderUpdates;
+        
+        const summary = {
+          timestamp: new Date().toISOString(),
+          ordersProcessed: salesImpact.ordersProcessed,
+          bundleSalesProcessed: salesImpact.bundleSales.length,
+          totalSkusUpdated: inventoryUpdates.updatedInventory.length,
+          skusNeedingReorder: inventoryUpdates.totalSkusNeedingReorder,
+          criticalStockItems: inventoryUpdates.totalCriticalSkus,
+          purchaseOrdersGenerated: purchaseOrders.length,
+          totalPurchaseValue: purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0),
+          preOrderUpdatesNeeded: preOrderUpdates.length,
+          highPriorityPOs: purchaseOrders.filter(po => po.priority === 'HIGH').length
+        };
+        
+        return {
+          inventory_updates: inventoryUpdates.updatedInventory,
+          purchase_orders_needed: purchaseOrders,
+          pre_order_updates: preOrderUpdates,
+          bundle_sales: salesImpact.bundleSales,
+          summary: summary,
+          recommendations: [
+            summary.criticalStockItems > 0 ? `URGENT: ${summary.criticalStockItems} items are critically low` : null,
+            summary.highPriorityPOs > 0 ? `${summary.highPriorityPOs} high-priority purchase orders need immediate attention` : null,
+            summary.preOrderUpdatesNeeded > 0 ? `${summary.preOrderUpdatesNeeded} products may need pre-order date updates` : null,
+            summary.totalPurchaseValue > 10000 ? `Total purchase value is $${summary.totalPurchaseValue.toFixed(2)} - consider cash flow impact` : null
+          ].filter(r => r !== null)
+        };

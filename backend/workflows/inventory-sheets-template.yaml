@@ -1,0 +1,74 @@
+name: setup-inventory-sheets
+description: "Setup Google Sheets templates for inventory management"
+version: "1.0"
+
+inputs:
+  inventory_sheet_id:
+    type: string
+    required: true
+    description: "Google Sheets ID for inventory tracking"
+
+steps:
+  # Create Inventory Sheet Header
+  - id: setup_inventory_headers
+    name: "Setup Inventory Sheet Headers"
+    type: googlesheets
+    config:
+      operation: "update"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Inventory!A1:J1"
+      data: [["SKU", "Product Name", "Current Stock", "Reorder Point", "Lead Time Days", "Supplier", "Unit Cost", "Location", "Bundle Parent", "Notes"]]
+
+  # Create Bundle Definitions Header
+  - id: setup_bundle_headers
+    name: "Setup Bundle Definitions Headers"
+    type: googlesheets
+    config:
+      operation: "update"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Bundles!A1:D1"
+      data: [["Bundle SKU", "Component SKU", "Quantity", "Notes"]]
+
+  # Create Purchase Orders Header
+  - id: setup_po_headers
+    name: "Setup Purchase Orders Headers"
+    type: googlesheets
+    config:
+      operation: "update"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "PurchaseOrders!A1:I1"
+      data: [["PO Number", "Supplier", "Created Date", "Expected Delivery", "Total Items", "Total Cost", "Status", "Priority", "Items JSON"]]
+
+  # Add sample inventory data
+  - id: add_sample_inventory
+    name: "Add Sample Inventory Data"
+    type: googlesheets
+    config:
+      operation: "append"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Inventory!A:J"
+      data: [
+        ["T-SHIRT-RED-M", "Red T-Shirt Medium", "25", "10", "14", "Clothing Supplier Co", "12.50", "Warehouse A", "", "Popular item"],
+        ["T-SHIRT-BLUE-L", "Blue T-Shirt Large", "15", "8", "14", "Clothing Supplier Co", "12.50", "Warehouse A", "", ""],
+        ["JEANS-BLACK-32", "Black Jeans 32\"", "8", "5", "21", "Denim Works", "35.00", "Warehouse B", "", ""],
+        ["BUNDLE-STARTER", "Starter Bundle", "0", "0", "0", "", "0", "", "BUNDLE", "Contains T-shirt + Jeans"],
+        ["HAT-BASEBALL", "Baseball Hat", "30", "15", "10", "Accessories Inc", "8.75", "Warehouse A", "", "Fast seller"]
+      ]
+
+  # Add sample bundle definitions
+  - id: add_sample_bundles
+    name: "Add Sample Bundle Definitions"
+    type: googlesheets
+    config:
+      operation: "append"
+      spreadsheetId: "{{inputs.inventory_sheet_id}}"
+      range: "Bundles!A:D"
+      data: [
+        ["BUNDLE-STARTER", "T-SHIRT-RED-M", "1", "One red t-shirt in starter bundle"],
+        ["BUNDLE-STARTER", "JEANS-BLACK-32", "1", "One pair of jeans in starter bundle"],
+        ["BUNDLE-STARTER", "HAT-BASEBALL", "1", "One hat in starter bundle"]
+      ]
+
+outputs:
+  success: true
+  message: "Inventory management sheets setup complete with sample data"

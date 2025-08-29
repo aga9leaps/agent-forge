@@ -1,0 +1,263 @@
+name: inventory-demo
+description: "Demo inventory workflow with mock data processing (no external APIs)"
+version: "1.0"
+
+inputs:
+  store_name:
+    type: string
+    default: "Demo Fashion Store"
+    description: "Name of the store"
+
+outputs:
+  inventory_summary: "{{steps.generate_summary.output}}"
+  bundle_analysis: "{{steps.analyze_bundles.output}}"
+
+steps:
+  # Step 1: Create mock inventory data
+  - id: create_mock_inventory
+    name: "Generate Mock Inventory Data"
+    type: transform
+    config:
+      expression: |
+        const inventory = [
+          { sku: 'T-SHIRT-RED-M', name: 'Red T-Shirt Medium', stock: 25, reorderPoint: 10, cost: 12.50, supplier: 'Clothing Co' },
+          { sku: 'T-SHIRT-BLUE-L', name: 'Blue T-Shirt Large', stock: 15, reorderPoint: 8, cost: 12.50, supplier: 'Clothing Co' },
+          { sku: 'JEANS-BLACK-32', name: 'Black Jeans 32"', stock: 8, reorderPoint: 5, cost: 35.00, supplier: 'Denim Works' },
+          { sku: 'HAT-BASEBALL', name: 'Baseball Hat', stock: 30, reorderPoint: 15, cost: 8.75, supplier: 'Accessories Inc' },
+          { sku: 'JACKET-LEATHER-L', name: 'Leather Jacket Large', stock: 3, reorderPoint: 5, cost: 125.00, supplier: 'Premium Goods' }
+        ];
+        
+        const bundles = [
+          { bundle: 'STARTER-PACK', components: [
+            { sku: 'T-SHIRT-RED-M', quantity: 1 },
+            { sku: 'JEANS-BLACK-32', quantity: 1 },
+            { sku: 'HAT-BASEBALL', quantity: 1 }
+          ]},
+          { bundle: 'PREMIUM-PACK', components: [
+            { sku: 'T-SHIRT-BLUE-L', quantity: 2 },
+            { sku: 'JACKET-LEATHER-L', quantity: 1 }
+          ]}
+        ];
+        
+        return { inventory, bundles, store: inputs.store_name };
+
+  # Step 2: Simulate recent sales
+  - id: simulate_sales
+    name: "Simulate Recent Sales Data"
+    type: transform
+    config:
+      expression: |
+        const sales = [
+          { order: '#1001', items: [{ sku: 'STARTER-PACK', quantity: 2 }]},
+          { order: '#1002', items: [{ sku: 'T-SHIRT-BLUE-L', quantity: 3 }]},
+          { order: '#1003', items: [{ sku: 'PREMIUM-PACK', quantity: 1 }]},
+          { order: '#1004', items: [{ sku: 'HAT-BASEBALL', quantity: 5 }]},
+          { order: '#1005', items: [{ sku: 'JEANS-BLACK-32', quantity: 2 }]}
+        ];
+        
+        return { sales, totalOrders: sales.length };
+
+  # Step 3: Process bundle sales and calculate inventory impact
+  - id: process_bundle_sales
+    name: "Process Bundle Sales and Calculate Inventory Impact"
+    type: transform
+    config:
+      expression: |
+        const { inventory, bundles } = steps.create_mock_inventory.output;
+        const { sales } = steps.simulate_sales.output;
+        
+        // Create bundle map for easy lookup
+        const bundleMap = {};
+        bundles.forEach(bundle => {
+          bundleMap[bundle.bundle] = bundle.components;
+        });
+        
+        // Calculate inventory deductions
+        let inventoryImpact = {};
+        let bundleSalesDetails = [];
+        
+        sales.forEach(order => {
+          order.items.forEach(item => {
+            if (bundleMap[item.sku]) {
+              // This is a bundle sale
+              bundleSalesDetails.push({
+                order: order.order,
+                bundle: item.sku,
+                quantity: item.quantity,
+                components: bundleMap[item.sku]
+              });
+              
+              // Deduct from each component
+              bundleMap[item.sku].forEach(component => {
+                const totalDeduction = component.quantity * item.quantity;
+                inventoryImpact[component.sku] = (inventoryImpact[component.sku] || 0) + totalDeduction;
+              });
+            } else {
+              // Direct SKU sale
+              inventoryImpact[item.sku] = (inventoryImpact[item.sku] || 0) + item.quantity;
+            }
+          });
+        });
+        
+        return { inventoryImpact, bundleSalesDetails };
+
+  # Step 4: Calculate updated inventory and reorder needs
+  - id: calculate_reorders
+    name: "Calculate Updated Inventory and Reorder Needs"
+    type: transform
+    config:
+      expression: |
+        const { inventory } = steps.create_mock_inventory.output;
+        const { inventoryImpact } = steps.process_bundle_sales.output;
+        
+        let updatedInventory = [];
+        let reorderNeeded = [];
+        let criticalStock = [];
+        
+        inventory.forEach(item => {
+          const sold = inventoryImpact[item.sku] || 0;
+          const newStock = Math.max(0, item.stock - sold);
+          
+          const updatedItem = {
+            ...item,
+            originalStock: item.stock,
+            soldQuantity: sold,
+            newStock: newStock,
+            needsReorder: newStock <= item.reorderPoint,
+            isCritical: newStock <= (item.reorderPoint * 0.5),
+            suggestedOrder: newStock <= item.reorderPoint ? Math.max(item.reorderPoint * 2, 20) : 0
+          };
+          
+          updatedInventory.push(updatedItem);
+          
+          if (updatedItem.needsReorder) {
+            reorderNeeded.push(updatedItem);
+          }
+          
+          if (updatedItem.isCritical) {
+            criticalStock.push(updatedItem);
+          }
+        });
+        
+        return { updatedInventory, reorderNeeded, criticalStock };
+
+  # Step 5: Generate purchase orders
+  - id: generate_purchase_orders
+    name: "Generate Purchase Orders by Supplier"
+    type: transform
+    config:
+      expression: |
+        const { reorderNeeded } = steps.calculate_reorders.output;
+        
+        // Group by supplier
+        const supplierGroups = {};
+        reorderNeeded.forEach(item => {
+          if (!supplierGroups[item.supplier]) {
+            supplierGroups[item.supplier] = [];
+          }
+          supplierGroups[item.supplier].push(item);
+        });
+        
+        // Generate purchase orders
+        const purchaseOrders = [];
+        let poNumber = 2001;
+        
+        Object.keys(supplierGroups).forEach(supplier => {
+          const items = supplierGroups[supplier];
+          const totalCost = items.reduce((sum, item) => sum + (item.suggestedOrder * item.cost), 0);
+          
+          purchaseOrders.push({
+            poNumber: `PO-${poNumber++}`,
+            supplier: supplier,
+            items: items.map(item => ({
+              sku: item.sku,
+              name: item.name,
+              currentStock: item.newStock,
+              orderQuantity: item.suggestedOrder,
+              unitCost: item.cost,
+              totalCost: item.suggestedOrder * item.cost
+            })),
+            totalItems: items.length,
+            totalCost: totalCost,
+            priority: items.some(i => i.isCritical) ? 'HIGH' : 'NORMAL'
+          });
+        });
+        
+        return { purchaseOrders };
+
+  # Step 6: Analyze bundle performance
+  - id: analyze_bundles
+    name: "Analyze Bundle Sales Performance"
+    type: transform
+    config:
+      expression: |
+        const { bundleSalesDetails } = steps.process_bundle_sales.output;
+        const { inventory } = steps.create_mock_inventory.output;
+        
+        // Calculate bundle impact
+        const bundleAnalysis = bundleSalesDetails.map(bundleSale => {
+          const componentImpact = bundleSale.components.map(component => {
+            const inventoryItem = inventory.find(inv => inv.sku === component.sku);
+            return {
+              sku: component.sku,
+              name: inventoryItem ? inventoryItem.name : 'Unknown',
+              quantityDeducted: component.quantity * bundleSale.quantity,
+              costImpact: inventoryItem ? (component.quantity * bundleSale.quantity * inventoryItem.cost) : 0
+            };
+          });
+          
+          return {
+            order: bundleSale.order,
+            bundle: bundleSale.bundle,
+            quantity: bundleSale.quantity,
+            componentImpact,
+            totalCostImpact: componentImpact.reduce((sum, comp) => sum + comp.costImpact, 0)
+          };
+        });
+        
+        const totalBundleValue = bundleAnalysis.reduce((sum, bundle) => sum + bundle.totalCostImpact, 0);
+        
+        return { bundleAnalysis, totalBundleValue, bundlesSold: bundleSalesDetails.length };
+
+  # Step 7: Generate final summary
+  - id: generate_summary
+    name: "Generate Inventory Management Summary"
+    type: transform
+    config:
+      expression: |
+        const inventory = steps.create_mock_inventory.output;
+        const sales = steps.simulate_sales.output;
+        const bundleProcessing = steps.process_bundle_sales.output;
+        const reorders = steps.calculate_reorders.output;
+        const pos = steps.generate_purchase_orders.output;
+        const bundleAnalysis = steps.analyze_bundles.output;
+        
+        return {
+          timestamp: new Date().toISOString(),
+          store: inventory.store,
+          salesSummary: {
+            totalOrders: sales.totalOrders,
+            bundleOrders: bundleProcessing.bundleSalesDetails.length,
+            directOrders: sales.totalOrders - bundleProcessing.bundleSalesDetails.length
+          },
+          inventorySummary: {
+            totalSkus: reorders.updatedInventory.length,
+            skusNeedingReorder: reorders.reorderNeeded.length,
+            criticalStockItems: reorders.criticalStock.length,
+            totalInventoryValue: reorders.updatedInventory.reduce((sum, item) => sum + (item.newStock * item.cost), 0)
+          },
+          purchaseOrders: {
+            ordersGenerated: pos.purchaseOrders.length,
+            totalPurchaseValue: pos.purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0),
+            highPriorityOrders: pos.purchaseOrders.filter(po => po.priority === 'HIGH').length
+          },
+          bundlePerformance: {
+            bundlesSold: bundleAnalysis.bundlesSold,
+            totalBundleValue: bundleAnalysis.totalBundleValue
+          },
+          recommendations: [
+            reorders.criticalStock.length > 0 ? `URGENT: ${reorders.criticalStock.length} items critically low` : null,
+            pos.purchaseOrders.filter(po => po.priority === 'HIGH').length > 0 ? 'High priority purchase orders need immediate attention' : null,
+            bundleAnalysis.bundlesSold > 0 ? `Bundle sales are performing well (${bundleAnalysis.bundlesSold} bundles sold)` : null
+          ].filter(r => r !== null)
+        };

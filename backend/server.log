@@ -1,85 +1,150 @@
-Starting test server with OpenAI Key: Set (hidden)
-Test server running on port 3000
-Available routes:
-GET  /health - Health check
-POST /api/workflows/load - Load workflow
-POST /api/workflows/execute/:name - Execute workflow
-GET  /api/workflows - List workflows
+AWS S3 initialized with region: undefined
+AWS_BUCKET_NAME: undefined
+MySQL pool created.
+Starting server with OpenAI Key: Set (hidden)
+SQL pool created successfully.
+(node:190475) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:190475) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(node:190475) NOTE: The AWS SDK for JavaScript (v2) is in maintenance mode.
+ SDK releases are limited to address critical bug fixes and security issues only.
 
-Ready to test workflows!
-Workflow 'simple-node-tests' loaded successfully
-Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
-Starting workflow execution: simple-node-tests [9306f143-f653-4179-aa87-2e1dd1275492]
-Executing step: test_datetime_now
-Workflow 'simple-node-tests' failed [9306f143-f653-4179-aa87-2e1dd1275492]: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
-Error executing workflow: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
-Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
-Starting workflow execution: simple-node-tests [d17575e0-dd3a-4603-bf8a-ebe5c2be836e]
-Executing step: test_datetime_now
-Workflow 'simple-node-tests' failed [d17575e0-dd3a-4603-bf8a-ebe5c2be836e]: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
-Error executing workflow: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
-Executing workflow: simple-node-tests with inputs: { test_mode: 'basic' }
-Starting workflow execution: simple-node-tests [94716c2b-f01f-49fd-832c-36670585e6e7]
-Executing step: test_datetime_now
-Workflow 'simple-node-tests' failed [94716c2b-f01f-49fd-832c-36670585e6e7]: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
-Error executing workflow: Error: Unknown step type: datetime
-    at WorkflowEngine.executeStep (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:191:15)
-    at WorkflowEngine.executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/workflow/WorkflowEngine.js:119:39)
-    at executeWorkflow (file:///home/aga/Projects/n8n-version-noviro/backend/src/controllers/workflowController.js:65:43)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at next (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:157:13)
-    at Route.dispatch (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/route.js:117:3)
-    at handle (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:435:11)
-    at Layer.handleRequest (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/lib/layer.js:152:17)
-    at /home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:295:15
-    at param (/home/aga/Projects/n8n-version-noviro/backend/node_modules/router/index.js:600:14)
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+Reporting Agent database connection failed: Error: connect ECONNREFUSED ::1:3306
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1549:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '::1',
+  port: 3306,
+  fatal: true
+}
+Database connection failed, but continuing with Reporting Agent initialization
+Reporting Agent Controller initialized successfully
+Registered node: http (http)
+MongoDB connection established
+Connected to MongoDB successfully.
+Failed to connect to Milvus: The `address` property is missing.
+Application initialized successfully.
+Connected to magic_paints database
+Initializing Campaign Scheduler...
+Campaign Scheduler initialized successfully
+Initializing CronJobService
+Server running on port 3000
+
+=== Agent Forge API Server ===
+API Endpoints:
+GET     /                          - API Information
+GET     /api/status                - System Status
+GET     /api/workflows             - List Workflows
+POST    /api/workflows/execute/:name - Execute Workflow
+GET     /api/workflows/executions/:id - Get Execution Details
+POST    /api/workflows/reload      - Reload Workflows
+GET     /api/contexts              - List Contexts
+GET     /api/contexts/:name        - Get Context
+POST    /api/agent/*               - Legacy Agent Endpoints
+
+✅ API Server Ready! (Frontend removed)
+🚀 Test with: curl http://localhost:3000/api/workflows
+Registered node: google_sheets (google_sheets)
+Registered node: shopify (shopify)
+Registered node: database (database)
+Could not load email node: Unexpected token '.'
+🚀 ~ CronJobService ~ initialize ~ activeJobs: 0
+🚀 ~ CronJobService ~ initialize ~ activeMPJobs: 0
+✅ CronJobService initialized successfully
+Registered node: datetime (datetime)
+Registered node: slack (slack)
+Registered node: telegram (telegram)
+Registered node: twilio (twilio)
+Registered node: discord (discord)
+Registered node: teams (teams)
+Workflow 'complete-inventory-agent' loaded successfully
+Workflow 'hello-world-fixed' loaded successfully
+Workflow 'inventory-demo' loaded successfully
+Workflow 'inventory-management-agent' loaded successfully
+Workflow 'setup-inventory-sheets' loaded successfully
+Loaded 5 workflows from /home/aga/Projects/n8n-version-noviro/backend/workflows
+WorkflowEngine core initialization complete
+WorkflowEngine initialized successfully
+2025-08-28T16:41:46.677Z - GET /
+2025-08-28T16:41:57.590Z - GET /api/workflows
+2025-08-28T16:42:52.597Z - POST /api/workflows/execute/complete-inventory-agent
+Registered node types: [
+  'http',        'google_sheets',
+  'shopify',     'database',
+  'datetime',    'slack',
+  'telegram',    'twilio',
+  'discord',     'teams',
+  'agent',       'agent_tool',
+  'transform',   'output',
+  'conditional'
+]
+Executing workflow: complete-inventory-agent with inputs: { business_context: 'electronics', test_mode: true }
+Starting workflow execution: complete-inventory-agent [2451e926-ec42-4e00-9d08-4797f3d4579f]
+Executing step: load_business_context
+Step 'load_business_context' completed
+Executing step: generate_inventory_data
+Step 'generate_inventory_data' completed
+Executing step: simulate_contextual_sales
+Step 'simulate_contextual_sales' completed
+Executing step: process_bundle_impact
+Step 'process_bundle_impact' completed
+Executing step: analyze_inventory_status
+Step 'analyze_inventory_status' completed
+Executing step: create_purchase_orders
+Step 'create_purchase_orders' completed
+Executing step: generate_recommendations
+Step 'generate_recommendations' completed
+Executing step: generate_final_summary
+Step 'generate_final_summary' completed
+Workflow 'complete-inventory-agent' completed successfully [2451e926-ec42-4e00-9d08-4797f3d4579f]
+2025-08-29T05:42:15.947Z - GET /api/workflows
+2025-08-29T05:42:15.957Z - GET /api/status
+2025-08-29T05:42:16.008Z - GET /
+2025-08-29T05:42:17.852Z - GET /api/workflows
+2025-08-29T05:42:17.854Z - GET /api/status
+2025-08-29T05:42:22.884Z - GET /api/status
+2025-08-29T05:42:27.890Z - GET /api/status
+2025-08-29T05:42:32.899Z - GET /api/status
+2025-08-29T05:42:37.907Z - GET /api/status
+2025-08-29T05:42:42.922Z - GET /api/status
+2025-08-29T05:42:47.925Z - GET /api/workflows
+2025-08-29T05:42:47.928Z - GET /api/status
+2025-08-29T05:42:53.081Z - GET /api/workflows
+2025-08-29T05:42:53.082Z - GET /api/status
+2025-08-29T05:42:53.932Z - GET /api/workflows
+2025-08-29T05:42:53.933Z - GET /api/status
+2025-08-29T05:42:58.951Z - GET /api/status
+2025-08-29T05:43:04.133Z - GET /api/status
+2025-08-29T05:44:17.896Z - POST /api/workflows/execute/complete-inventory-agent
+Registered node types: [
+  'http',        'google_sheets',
+  'shopify',     'database',
+  'datetime',    'slack',
+  'telegram',    'twilio',
+  'discord',     'teams',
+  'agent',       'agent_tool',
+  'transform',   'output',
+  'conditional'
+]
+Executing workflow: complete-inventory-agent with inputs: { business_context: 'fashion-retail', test_mode: true }
+Starting workflow execution: complete-inventory-agent [f4529578-a863-4e05-9ff6-c763f54498c9]
+Executing step: load_business_context
+Step 'load_business_context' completed
+Executing step: generate_inventory_data
+Step 'generate_inventory_data' completed
+Executing step: simulate_contextual_sales
+Step 'simulate_contextual_sales' completed
+Executing step: process_bundle_impact
+Step 'process_bundle_impact' completed
+Executing step: analyze_inventory_status
+Step 'analyze_inventory_status' completed
+Executing step: create_purchase_orders
+Step 'create_purchase_orders' completed
+Executing step: generate_recommendations
+Step 'generate_recommendations' completed
+Executing step: generate_final_summary
+Step 'generate_final_summary' completed
+Workflow 'complete-inventory-agent' completed successfully [f4529578-a863-4e05-9ff6-c763f54498c9]

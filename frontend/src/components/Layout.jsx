@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Zap,
-  Car
+  Car,
+  TestTube
 } from 'lucide-react'
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'Workflows', href: '/workflows', icon: Workflow },
   { name: 'Executions', href: '/executions', icon: Play },
   { name: 'Nodes', href: '/nodes', icon: Boxes },
+  { name: 'Test Data', href: '/test-data', icon: TestTube },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 

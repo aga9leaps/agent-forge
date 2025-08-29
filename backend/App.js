@@ -3,7 +3,6 @@ import createAgentRouter from "./src/routes/agentRouter.js";
 import createSalesAgentRouter from "./src/routes/salesAgentRouter.js";
 import createCampaignManagerRouter from "./src/routes/campaignManagerRouter.js";
 import workflowRouter from "./src/routes/workflowRouter.js";
-import frontendRouter from "./src/routes/frontendRouter.js";
 import systemRouter from "./src/routes/systemRouter.js";
 import contextRouter from "./src/routes/contextRouter.js";
 import { contextMiddleware } from "./src/middleware/contextMiddleware.js";
@@ -49,12 +48,11 @@ const campaignScheduler = new CampaignScheduler();
 campaignScheduler.initialize();
 
 app.use(express.json());
-app.use(express.static(".")); // Serve static files from the current directory
 
 // Add context middleware for all API routes
 app.use("/api", contextMiddleware);
 
-// API Routes
+// API Routes Only (No Frontend)
 app.use("/api", createAgentRouter());
 app.use("/api/sales", createSalesAgentRouter());
 app.use("/api/campaign", createCampaignManagerRouter());
@@ -62,30 +60,35 @@ app.use("/api/workflows", workflowRouter);
 app.use("/api", systemRouter);
 app.use("/api/contexts", contextRouter);
 
-// Frontend Routes (must be last)
-app.use("/", frontendRouter);
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    name: "Agent Forge API",
+    version: "2.0",
+    status: "operational",
+    endpoints: {
+      workflows: "/api/workflows",
+      contexts: "/api/contexts", 
+      system: "/api/status"
+    }
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
-  // Print available routes for debugging
-  console.log('\nAvailable Routes:');
-  // Safely log registered routes
-  try {
-    // Log static routes (just informational)
-    console.log('Static file serving: /');
-    
-    // Log API routes we know are registered
-    console.log('API Routes:');
-    console.log('Various\t/api/*      (Agent Router)');
-    console.log('Various\t/api/sales/* (Sales Agent Router)');
-    console.log('Various\t/api/campaign/* (Campaign Manager Router)');
-    
-    // For a more detailed route list, we'd need to use Express Router introspection
-    // which is implementation-specific and version dependent
-  } catch (error) {
-    console.error('Error printing routes:', error.message);
-  }
+  console.log('\n=== Agent Forge API Server ===');
+  console.log('API Endpoints:');
+  console.log('GET     /                          - API Information');
+  console.log('GET     /api/status                - System Status');
+  console.log('GET     /api/workflows             - List Workflows');
+  console.log('POST    /api/workflows/execute/:name - Execute Workflow');
+  console.log('GET     /api/workflows/executions/:id - Get Execution Details');
+  console.log('POST    /api/workflows/reload      - Reload Workflows');
+  console.log('GET     /api/contexts              - List Contexts');
+  console.log('GET     /api/contexts/:name        - Get Context');
+  console.log('POST    /api/agent/*               - Legacy Agent Endpoints');
   
-  console.log("\nAPI Server is ready!");
+  console.log("\n✅ API Server Ready! (Frontend removed)");
+  console.log("🚀 Test with: curl http://localhost:3000/api/workflows");
 });

@@ -10,6 +10,9 @@ const router = express.Router();
 // Load workflow from file
 router.post('/load', workflowController.loadWorkflow);
 
+// Reload all workflows from disk
+router.post('/reload', workflowController.reloadWorkflows);
+
 // Validate workflow
 router.post('/validate', workflowController.validateWorkflow);
 

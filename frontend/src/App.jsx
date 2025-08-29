@@ -7,6 +7,7 @@ import WorkflowManager from './pages/WorkflowManager'
 import WorkflowEditor from './pages/WorkflowEditor'
 import ExecutionMonitor from './pages/ExecutionMonitor'
 import NodeLibrary from './pages/NodeLibrary'
+import TestDataManager from './pages/TestDataManager'
 import Settings from './pages/Settings'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/workflows/editor/:workflowName" element={<WorkflowEditor />} />
         <Route path="/executions" element={<ExecutionMonitor />} />
         <Route path="/nodes" element={<NodeLibrary />} />
+        <Route path="/test-data" element={<TestDataManager />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>

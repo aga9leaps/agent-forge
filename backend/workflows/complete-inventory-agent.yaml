@@ -1,0 +1,497 @@
+name: complete-inventory-agent
+description: "Complete working inventory agent with context, dummy data, and full workflow"
+version: "1.0"
+
+inputs:
+  business_context:
+    type: string
+    default: "fashion-retail"
+    description: "Business context (fashion-retail, electronics, etc.)"
+  test_mode:
+    type: boolean
+    default: true
+    description: "Run in test mode with dummy data"
+
+outputs:
+  agent_summary: "{{steps.generate_final_summary.output}}"
+  recommendations: "{{steps.generate_recommendations.output}}"
+  purchase_orders: "{{steps.create_purchase_orders.output.orders}}"
+  context_used: "{{steps.load_business_context.output}}"
+
+steps:
+  # Step 1: Load Business Context
+  - id: load_business_context
+    name: "Load Business Context and Configuration"
+    type: transform
+    config:
+      expression: |
+        const contexts = {
+          'fashion-retail': {
+            business_type: 'Fashion Retail',
+            inventory_categories: ['clothing', 'accessories', 'footwear'],
+            seasonality: 'high',
+            reorder_safety_factor: 1.5,
+            bundle_strategy: 'outfit-based',
+            target_margin: 0.65,
+            suppliers: ['Fashion Wholesale Co', 'Trendy Imports', 'Seasonal Styles Ltd']
+          },
+          'electronics': {
+            business_type: 'Electronics',
+            inventory_categories: ['phones', 'laptops', 'accessories'],
+            seasonality: 'low',
+            reorder_safety_factor: 2.0,
+            bundle_strategy: 'compatibility-based',
+            target_margin: 0.40,
+            suppliers: ['Tech Distributors Inc', 'Global Electronics', 'Component Supply Co']
+          }
+        };
+        
+        const selectedContext = contexts[inputs.business_context] || contexts['fashion-retail'];
+        
+        return {
+          ...selectedContext,
+          context_name: inputs.business_context,
+          test_mode: inputs.test_mode,
+          analysis_date: new Date().toISOString()
+        };
+
+  # Step 2: Generate Contextual Dummy Data
+  - id: generate_inventory_data
+    name: "Generate Contextual Inventory Data"
+    type: transform
+    config:
+      expression: |
+        const context = steps.load_business_context.output;
+        
+        let inventory = [];
+        let bundles = [];
+        
+        if (context.context_name === 'fashion-retail') {
+          inventory = [
+            { sku: 'DRESS-RED-M', name: 'Red Summer Dress M', category: 'clothing', stock: 45, reorderPoint: 15, cost: 28.50, supplier: 'Fashion Wholesale Co', location: 'Main Warehouse' },
+            { sku: 'JEANS-BLUE-32', name: 'Blue Jeans 32"', category: 'clothing', stock: 12, reorderPoint: 8, cost: 35.00, supplier: 'Trendy Imports', location: 'Main Warehouse' },
+            { sku: 'SNEAKER-WHITE-9', name: 'White Sneakers Size 9', category: 'footwear', stock: 6, reorderPoint: 10, cost: 45.00, supplier: 'Seasonal Styles Ltd', location: 'Shoe Section' },
+            { sku: 'BAG-LEATHER-BLACK', name: 'Black Leather Handbag', category: 'accessories', stock: 22, reorderPoint: 5, cost: 65.00, supplier: 'Fashion Wholesale Co', location: 'Accessories' },
+            { sku: 'SCARF-SILK-BLUE', name: 'Blue Silk Scarf', category: 'accessories', stock: 3, reorderPoint: 8, cost: 18.00, supplier: 'Trendy Imports', location: 'Accessories' }
+          ];
+          
+          bundles = [
+            { 
+              bundle: 'SUMMER-OUTFIT-M', 
+              name: 'Summer Outfit Package M',
+              components: [
+                { sku: 'DRESS-RED-M', quantity: 1 },
+                { sku: 'BAG-LEATHER-BLACK', quantity: 1 },
+                { sku: 'SCARF-SILK-BLUE', quantity: 1 }
+              ]
+            },
+            {
+              bundle: 'CASUAL-LOOK-32',
+              name: 'Casual Look Package 32',
+              components: [
+                { sku: 'JEANS-BLUE-32', quantity: 1 },
+                { sku: 'SNEAKER-WHITE-9', quantity: 1 },
+                { sku: 'BAG-LEATHER-BLACK', quantity: 1 }
+              ]
+            }
+          ];
+        } else {
+          // Electronics context
+          inventory = [
+            { sku: 'PHONE-APPLE-128', name: 'iPhone 128GB', category: 'phones', stock: 25, reorderPoint: 10, cost: 650.00, supplier: 'Tech Distributors Inc', location: 'Electronics Floor' },
+            { sku: 'LAPTOP-DELL-I7', name: 'Dell Laptop i7', category: 'laptops', stock: 8, reorderPoint: 5, cost: 850.00, supplier: 'Global Electronics', location: 'Computer Section' },
+            { sku: 'CASE-PHONE-CLEAR', name: 'Clear Phone Case', category: 'accessories', stock: 150, reorderPoint: 50, cost: 8.50, supplier: 'Component Supply Co', location: 'Accessories' },
+            { sku: 'CHARGER-USB-C', name: 'USB-C Fast Charger', category: 'accessories', stock: 35, reorderPoint: 20, cost: 15.00, supplier: 'Component Supply Co', location: 'Accessories' }
+          ];
+          
+          bundles = [
+            {
+              bundle: 'PHONE-STARTER-KIT',
+              name: 'Phone Starter Kit',
+              components: [
+                { sku: 'PHONE-APPLE-128', quantity: 1 },
+                { sku: 'CASE-PHONE-CLEAR', quantity: 1 },
+                { sku: 'CHARGER-USB-C', quantity: 1 }
+              ]
+            }
+          ];
+        }
+        
+        return { inventory, bundles, context_applied: context.context_name };
+
+  # Step 3: Simulate Recent Sales with Context
+  - id: simulate_contextual_sales
+    name: "Simulate Recent Sales Based on Context"
+    type: transform
+    config:
+      expression: |
+        const context = steps.load_business_context.output;
+        const { inventory, bundles } = steps.generate_inventory_data.output;
+        
+        let sales = [];
+        
+        if (context.context_name === 'fashion-retail') {
+          sales = [
+            { order: '#FASH-1001', date: '2025-08-28', customer: 'Sarah M.', items: [{ sku: 'SUMMER-OUTFIT-M', quantity: 2 }], value: 223.00 },
+            { order: '#FASH-1002', date: '2025-08-28', customer: 'Mike R.', items: [{ sku: 'JEANS-BLUE-32', quantity: 1 }], value: 69.99 },
+            { order: '#FASH-1003', date: '2025-08-28', customer: 'Lisa K.', items: [{ sku: 'CASUAL-LOOK-32', quantity: 1 }], value: 189.99 },
+            { order: '#FASH-1004', date: '2025-08-27', customer: 'Emma S.', items: [{ sku: 'BAG-LEATHER-BLACK', quantity: 2 }, { sku: 'SCARF-SILK-BLUE', quantity: 1 }], value: 148.00 },
+            { order: '#FASH-1005', date: '2025-08-27', customer: 'John D.', items: [{ sku: 'SNEAKER-WHITE-9', quantity: 1 }], value: 89.99 }
+          ];
+        } else {
+          sales = [
+            { order: '#TECH-2001', date: '2025-08-28', customer: 'Alex P.', items: [{ sku: 'PHONE-STARTER-KIT', quantity: 1 }], value: 899.99 },
+            { order: '#TECH-2002', date: '2025-08-28', customer: 'Sam L.', items: [{ sku: 'LAPTOP-DELL-I7', quantity: 1 }], value: 1299.99 },
+            { order: '#TECH-2003', date: '2025-08-27', customer: 'Maria G.', items: [{ sku: 'CHARGER-USB-C', quantity: 3 }], value: 44.97 }
+          ];
+        }
+        
+        return { 
+          sales, 
+          totalOrders: sales.length,
+          totalRevenue: sales.reduce((sum, order) => sum + order.value, 0),
+          analysisContext: context.context_name 
+        };
+
+  # Step 4: Process Bundle Sales with Full Logic
+  - id: process_bundle_impact
+    name: "Process Bundle Sales and Calculate Inventory Impact"
+    type: transform
+    config:
+      expression: |
+        const { inventory, bundles } = steps.generate_inventory_data.output;
+        const { sales } = steps.simulate_contextual_sales.output;
+        const context = steps.load_business_context.output;
+        
+        // Create bundle lookup map
+        const bundleMap = {};
+        bundles.forEach(bundle => {
+          bundleMap[bundle.bundle] = bundle.components;
+        });
+        
+        // Track inventory impact
+        let inventoryImpact = {};
+        let bundleSalesDetails = [];
+        let directSales = [];
+        
+        sales.forEach(order => {
+          order.items.forEach(item => {
+            if (bundleMap[item.sku]) {
+              // Bundle sale processing
+              bundleSalesDetails.push({
+                order: order.order,
+                customer: order.customer,
+                bundle: item.sku,
+                quantity: item.quantity,
+                components: bundleMap[item.sku],
+                value: order.value
+              });
+              
+              // Deduct from component inventory
+              bundleMap[item.sku].forEach(component => {
+                const totalDeduction = component.quantity * item.quantity;
+                inventoryImpact[component.sku] = (inventoryImpact[component.sku] || 0) + totalDeduction;
+              });
+            } else {
+              // Direct SKU sale
+              directSales.push({
+                order: order.order,
+                customer: order.customer,
+                sku: item.sku,
+                quantity: item.quantity
+              });
+              inventoryImpact[item.sku] = (inventoryImpact[item.sku] || 0) + item.quantity;
+            }
+          });
+        });
+        
+        return {
+          inventoryImpact,
+          bundleSalesDetails,
+          directSales,
+          bundleRevenue: bundleSalesDetails.reduce((sum, sale) => sum + sale.value, 0),
+          bundlePerformance: {
+            totalBundlesSold: bundleSalesDetails.length,
+            averageBundleValue: bundleSalesDetails.length > 0 ? 
+              bundleSalesDetails.reduce((sum, sale) => sum + sale.value, 0) / bundleSalesDetails.length : 0
+          }
+        };
+
+  # Step 5: Advanced Inventory Analysis
+  - id: analyze_inventory_status
+    name: "Analyze Inventory Status with Context Rules"
+    type: transform
+    config:
+      expression: |
+        const { inventory } = steps.generate_inventory_data.output;
+        const { inventoryImpact } = steps.process_bundle_impact.output;
+        const context = steps.load_business_context.output;
+        
+        let updatedInventory = [];
+        let reorderNeeded = [];
+        let criticalStock = [];
+        let wellStocked = [];
+        
+        inventory.forEach(item => {
+          const sold = inventoryImpact[item.sku] || 0;
+          const newStock = Math.max(0, item.stock - sold);
+          
+          // Apply context-specific reorder logic
+          const adjustedReorderPoint = Math.ceil(item.reorderPoint * context.reorder_safety_factor);
+          const criticalThreshold = Math.ceil(adjustedReorderPoint * 0.5);
+          
+          const updatedItem = {
+            ...item,
+            originalStock: item.stock,
+            soldQuantity: sold,
+            newStock: newStock,
+            adjustedReorderPoint,
+            criticalThreshold,
+            needsReorder: newStock <= adjustedReorderPoint,
+            isCritical: newStock <= criticalThreshold,
+            isWellStocked: newStock > (adjustedReorderPoint * 2),
+            suggestedOrderQuantity: newStock <= adjustedReorderPoint ? 
+              Math.max(adjustedReorderPoint * 3, 25) : 0,
+            stockStatus: newStock <= criticalThreshold ? 'CRITICAL' :
+                        newStock <= adjustedReorderPoint ? 'REORDER_NEEDED' :
+                        newStock > (adjustedReorderPoint * 2) ? 'WELL_STOCKED' : 'NORMAL',
+            daysSupplyRemaining: sold > 0 ? Math.floor(newStock / (sold / 7)) : 999
+          };
+          
+          updatedInventory.push(updatedItem);
+          
+          if (updatedItem.needsReorder) reorderNeeded.push(updatedItem);
+          if (updatedItem.isCritical) criticalStock.push(updatedItem);
+          if (updatedItem.isWellStocked) wellStocked.push(updatedItem);
+        });
+        
+        return {
+          updatedInventory,
+          reorderNeeded,
+          criticalStock,
+          wellStocked,
+          inventoryValue: updatedInventory.reduce((sum, item) => sum + (item.newStock * item.cost), 0),
+          reorderValue: reorderNeeded.reduce((sum, item) => sum + (item.suggestedOrderQuantity * item.cost), 0)
+        };
+
+  # Step 6: Create Purchase Orders with Context
+  - id: create_purchase_orders
+    name: "Generate Context-Aware Purchase Orders"
+    type: transform
+    config:
+      expression: |
+        const { reorderNeeded } = steps.analyze_inventory_status.output;
+        const context = steps.load_business_context.output;
+        
+        // Group by supplier
+        const supplierGroups = {};
+        reorderNeeded.forEach(item => {
+          if (!supplierGroups[item.supplier]) {
+            supplierGroups[item.supplier] = [];
+          }
+          supplierGroups[item.supplier].push(item);
+        });
+        
+        // Generate purchase orders
+        const orders = [];
+        let poNumber = 3001;
+        const today = new Date();
+        
+        Object.keys(supplierGroups).forEach(supplier => {
+          const items = supplierGroups[supplier];
+          const hasCriticalItems = items.some(item => item.isCritical);
+          
+          // Calculate lead time based on context and criticality
+          let leadTimeDays = 14; // Default
+          if (context.context_name === 'fashion-retail' && context.seasonality === 'high') {
+            leadTimeDays = hasCriticalItems ? 7 : 10;
+          } else if (context.context_name === 'electronics') {
+            leadTimeDays = hasCriticalItems ? 5 : 14;
+          }
+          
+          const expectedDelivery = new Date(today);
+          expectedDelivery.setDate(today.getDate() + leadTimeDays);
+          
+          const totalCost = items.reduce((sum, item) => sum + (item.suggestedOrderQuantity * item.cost), 0);
+          
+          orders.push({
+            poNumber: `PO-${poNumber++}`,
+            supplier: supplier,
+            createdDate: today.toISOString().split('T')[0],
+            expectedDelivery: expectedDelivery.toISOString().split('T')[0],
+            leadTimeDays: leadTimeDays,
+            priority: hasCriticalItems ? 'URGENT' : 'NORMAL',
+            businessContext: context.context_name,
+            items: items.map(item => ({
+              sku: item.sku,
+              name: item.name,
+              category: item.category,
+              currentStock: item.newStock,
+              orderQuantity: item.suggestedOrderQuantity,
+              unitCost: item.cost,
+              totalCost: item.suggestedOrderQuantity * item.cost,
+              stockStatus: item.stockStatus,
+              daysSupplyRemaining: item.daysSupplyRemaining
+            })),
+            totalItems: items.length,
+            totalCost: totalCost,
+            approvalRequired: totalCost > 5000,
+            notes: hasCriticalItems ? 'Contains critical stock items - expedite processing' : ''
+          });
+        });
+        
+        return { 
+          orders,
+          totalOrderValue: orders.reduce((sum, po) => sum + po.totalCost, 0),
+          urgentOrders: orders.filter(po => po.priority === 'URGENT').length
+        };
+
+  # Step 7: Generate Intelligent Recommendations
+  - id: generate_recommendations
+    name: "Generate Context-Aware Business Recommendations"
+    type: transform
+    config:
+      expression: |
+        const context = steps.load_business_context.output;
+        const sales = steps.simulate_contextual_sales.output;
+        const bundleData = steps.process_bundle_impact.output;
+        const inventory = steps.analyze_inventory_status.output;
+        const purchaseOrders = steps.create_purchase_orders.output;
+        
+        let recommendations = [];
+        let insights = [];
+        let actions = [];
+        
+        // Critical stock recommendations
+        if (inventory.criticalStock.length > 0) {
+          recommendations.push({
+            type: 'URGENT',
+            category: 'INVENTORY',
+            title: `${inventory.criticalStock.length} items critically low`,
+            description: `Immediate attention required for: ${inventory.criticalStock.map(i => i.name).join(', ')}`,
+            action: 'Expedite purchase orders and consider emergency suppliers',
+            impact: 'HIGH'
+          });
+        }
+        
+        // Bundle performance insights
+        if (bundleData.bundleSalesDetails.length > 0) {
+          recommendations.push({
+            type: 'INSIGHT',
+            category: 'SALES',
+            title: 'Bundle sales performing well',
+            description: `${bundleData.bundleSalesDetails.length} bundle sales generated $${bundleData.bundleRevenue.toFixed(2)}`,
+            action: 'Consider expanding bundle offerings and promotions',
+            impact: 'MEDIUM'
+          });
+        }
+        
+        // Context-specific recommendations
+        if (context.context_name === 'fashion-retail') {
+          if (context.seasonality === 'high') {
+            recommendations.push({
+              type: 'STRATEGIC',
+              category: 'PLANNING',
+              title: 'Seasonal demand planning needed',
+              description: 'High seasonality context requires advance inventory planning',
+              action: 'Implement seasonal forecasting and pre-ordering strategy',
+              impact: 'HIGH'
+            });
+          }
+        }
+        
+        // Purchase order recommendations
+        if (purchaseOrders.urgentOrders > 0) {
+          recommendations.push({
+            type: 'ACTION',
+            category: 'PROCUREMENT',
+            title: `${purchaseOrders.urgentOrders} urgent purchase orders`,
+            description: `Total urgent procurement value: $${purchaseOrders.orders.filter(po => po.priority === 'URGENT').reduce((sum, po) => sum + po.totalCost, 0).toFixed(2)}`,
+            action: 'Approve and process urgent POs immediately',
+            impact: 'HIGH'
+          });
+        }
+        
+        // Inventory efficiency insights
+        const inventoryTurnover = sales.totalRevenue / inventory.inventoryValue;
+        if (inventoryTurnover < 0.5) {
+          recommendations.push({
+            type: 'OPTIMIZATION',
+            category: 'EFFICIENCY',
+            title: 'Inventory turnover below optimal',
+            description: `Current turnover ratio: ${inventoryTurnover.toFixed(2)}`,
+            action: 'Review slow-moving items and adjust reorder points',
+            impact: 'MEDIUM'
+          });
+        }
+        
+        return {
+          recommendations,
+          summary: {
+            totalRecommendations: recommendations.length,
+            urgentActions: recommendations.filter(r => r.type === 'URGENT' || r.type === 'ACTION').length,
+            businessContext: context.context_name,
+            analysisDate: new Date().toISOString()
+          }
+        };
+
+  # Step 8: Generate Final Summary
+  - id: generate_final_summary
+    name: "Generate Complete Agent Summary"
+    type: transform
+    config:
+      expression: |
+        const context = steps.load_business_context.output;
+        const sales = steps.simulate_contextual_sales.output;
+        const bundleData = steps.process_bundle_impact.output;
+        const inventory = steps.analyze_inventory_status.output;
+        const purchaseOrders = steps.create_purchase_orders.output;
+        const recommendations = steps.generate_recommendations.output;
+        
+        return {
+          executionSummary: {
+            agentName: 'Complete Inventory Agent',
+            businessContext: context.business_type,
+            contextName: context.context_name,
+            testMode: context.test_mode,
+            executionDate: new Date().toISOString(),
+            processingStatus: 'COMPLETED'
+          },
+          salesAnalysis: {
+            totalOrders: sales.totalOrders,
+            totalRevenue: sales.totalRevenue,
+            bundleOrders: bundleData.bundleSalesDetails.length,
+            bundleRevenue: bundleData.bundleRevenue,
+            averageOrderValue: sales.totalRevenue / sales.totalOrders,
+            bundleContributionPercent: (bundleData.bundleRevenue / sales.totalRevenue * 100).toFixed(1)
+          },
+          inventoryStatus: {
+            totalSkus: inventory.updatedInventory.length,
+            currentInventoryValue: inventory.inventoryValue,
+            itemsNeedingReorder: inventory.reorderNeeded.length,
+            criticalStockItems: inventory.criticalStock.length,
+            wellStockedItems: inventory.wellStocked.length,
+            inventoryHealthScore: ((inventory.wellStocked.length / inventory.updatedInventory.length) * 100).toFixed(1)
+          },
+          procurementSummary: {
+            purchaseOrdersGenerated: purchaseOrders.orders.length,
+            totalProcurementValue: purchaseOrders.totalOrderValue,
+            urgentOrders: purchaseOrders.urgentOrders,
+            suppliersInvolved: [...new Set(purchaseOrders.orders.map(po => po.supplier))].length
+          },
+          businessInsights: {
+            totalRecommendations: recommendations.summary.totalRecommendations,
+            urgentActions: recommendations.summary.urgentActions,
+            keyInsights: recommendations.recommendations.slice(0, 3).map(r => ({
+              type: r.type,
+              title: r.title,
+              impact: r.impact
+            }))
+          },
+          contextApplication: {
+            reorderSafetyFactor: context.reorder_safety_factor,
+            bundleStrategy: context.bundle_strategy,
+            targetMargin: context.target_margin,
+            seasonalityFactor: context.seasonality
+          }
+        };

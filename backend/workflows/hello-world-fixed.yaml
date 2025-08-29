@@ -1,0 +1,49 @@
+name: hello-world-fixed
+description: "Simple working hello world agent with proper syntax"
+version: "1.0"
+
+inputs:
+  name:
+    type: string
+    default: "World"
+    description: "Name to greet"
+
+outputs:
+  greeting: "{{steps.format_message.output.message}}"
+  timestamp: "{{steps.format_message.output.timestamp}}"
+
+steps:
+  - id: create_greeting
+    name: "Create Personalized Greeting"
+    type: transform
+    config:
+      expression: |
+        const name = inputs.name || 'World';
+        const greetings = [
+          `Hello ${name}! Welcome to Agent Forge.`,
+          `Greetings ${name}! Your workflow is running perfectly.`,
+          `Hi ${name}! The Agent Forge platform is ready to serve you.`
+        ];
+        
+        const selectedGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+        
+        return {
+          greeting: selectedGreeting,
+          name: name,
+          random_number: Math.floor(Math.random() * 1000)
+        };
+
+  - id: format_message
+    name: "Format Final Message"
+    type: transform
+    config:
+      expression: |
+        const greeting = steps.create_greeting.output;
+        
+        return {
+          message: greeting.greeting,
+          timestamp: new Date().toISOString(),
+          user: greeting.name,
+          lucky_number: greeting.random_number,
+          system_status: "operational"
+        };

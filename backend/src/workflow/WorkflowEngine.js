@@ -16,7 +16,7 @@ class WorkflowEngine {
     this.workflows = new Map();           // Loaded workflow definitions
     this.executions = new Map();          // Active/completed executions
     this.nodeExecutors = new Map();       // Registered node type executors
-    this.workflowsDir = path.join(__dirname, '../../../workflows');
+    this.workflowsDir = path.join(__dirname, '../../workflows');
     this.initialized = false;
     
     // Don't call initialize() here - will be called explicitly
@@ -26,6 +26,14 @@ class WorkflowEngine {
     if (this.initialized) return;
     
     await this.registerBuiltInNodes();
+    
+    // Auto-load all workflows from the workflows directory
+    try {
+      await this.loadAllWorkflows();
+    } catch (error) {
+      console.warn('Failed to auto-load workflows:', error.message);
+    }
+    
     this.initialized = true;
     console.log('WorkflowEngine core initialization complete');
   }
@@ -507,6 +515,34 @@ class WorkflowEngine {
    */
   getExecution(executionId) {
     return this.executions.get(executionId);
+  }
+
+  /**
+   * Load all workflows from the workflows directory
+   * @returns {Promise<number>} Number of workflows loaded
+   */
+  async loadAllWorkflows() {
+    try {
+      const files = await fs.readdir(this.workflowsDir);
+      let loadedCount = 0;
+      
+      for (const file of files) {
+        if (file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json')) {
+          try {
+            await this.loadWorkflow(file);
+            loadedCount++;
+          } catch (error) {
+            console.warn(`Failed to load workflow ${file}:`, error.message);
+          }
+        }
+      }
+      
+      console.log(`Loaded ${loadedCount} workflows from ${this.workflowsDir}`);
+      return loadedCount;
+    } catch (error) {
+      console.error('Error loading workflows directory:', error);
+      throw error;
+    }
   }
 
   /**
